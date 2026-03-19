@@ -1,4 +1,4 @@
-import { View, Text, KeyboardAvoidingView, Platform, TouchableOpacity, Image } from "react-native";
+import { View, Text, KeyboardAvoidingView, Platform, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,6 +14,7 @@ export default function OtpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
 
@@ -43,6 +44,8 @@ export default function OtpScreen() {
     setResending(true);
     try {
       await api.post("/auth/request-otp", { phone });
+      setResent(true);
+      setTimeout(() => setResent(false), 3000);
     } catch {} finally {
       setResending(false);
     }
@@ -51,62 +54,71 @@ export default function OtpScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView
-        className="flex-1 px-6"
+        className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* Back button */}
-        <TouchableOpacity onPress={() => router.back()} className="mt-4 mb-8">
-          <Text className="text-lg" style={{ color: colors.primary }}>← Back</Text>
-        </TouchableOpacity>
-
-        {/* Header */}
-        <View className="items-center mb-10">
-          <View
-            className="w-16 h-16 rounded-2xl items-center justify-center mb-5"
-            style={{ backgroundColor: `${colors.primary}15` }}
-          >
-            <Text className="text-3xl">🔐</Text>
-          </View>
-          <Text className="text-2xl font-bold text-gray-900 text-center mb-2">
-            Verify your number
-          </Text>
-          <Text className="text-base text-gray-500 text-center leading-6">
-            We sent a 6-digit code to{"\n"}
-            <Text className="font-semibold text-gray-700">{phone}</Text>
-          </Text>
-        </View>
-
-        {/* Code input */}
-        <Input
-          label="Verification code"
-          placeholder="000000"
-          keyboardType="number-pad"
-          value={code}
-          onChangeText={(text) => {
-            setCode(text);
-            if (error) setError("");
-          }}
-          error={error}
-          maxLength={6}
-          autoFocus
-        />
-
-        <Button
-          title="Verify"
-          onPress={handleVerify}
-          loading={loading}
-          disabled={code.length < 4}
-        />
-
-        {/* Resend */}
-        <TouchableOpacity onPress={handleResend} disabled={resending} className="mt-6 items-center">
-          <Text className="text-sm text-gray-400">
-            Didn't receive the code?{" "}
-            <Text style={{ color: colors.primary }} className="font-semibold">
-              {resending ? "Sending..." : "Resend"}
+        <View className="flex-1 px-8">
+          {/* Back */}
+          <TouchableOpacity onPress={() => router.back()} className="py-4">
+            <Text className="text-base font-medium" style={{ color: colors.primary }}>
+              ← Back
             </Text>
-          </Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
+
+          {/* Content */}
+          <View className="flex-1 justify-center" style={{ maxWidth: 400, alignSelf: "center", width: "100%" }}>
+            {/* Step indicator */}
+            <View className="flex-row mb-8">
+              <View className="h-1 flex-1 rounded-full mr-1" style={{ backgroundColor: colors.primary }} />
+              <View className="h-1 flex-1 rounded-full ml-1 bg-gray-200" />
+            </View>
+
+            <Text className="text-2xl font-bold text-gray-900 mb-1">Verification</Text>
+            <Text className="text-sm text-gray-500 mb-1 leading-5">
+              Enter the 6-digit code sent to
+            </Text>
+            <Text className="text-sm font-semibold text-gray-800 mb-8">{phone}</Text>
+
+            <Input
+              label="Verification code"
+              placeholder="000000"
+              keyboardType="number-pad"
+              value={code}
+              onChangeText={(text) => {
+                setCode(text);
+                if (error) setError("");
+              }}
+              error={error}
+              maxLength={6}
+              autoFocus
+            />
+
+            <Button
+              title="Verify"
+              onPress={handleVerify}
+              loading={loading}
+              disabled={code.length < 4}
+            />
+
+            {/* Resend */}
+            <View className="items-center mt-8">
+              {resent ? (
+                <Text className="text-sm font-medium" style={{ color: colors.green }}>
+                  Code sent successfully
+                </Text>
+              ) : (
+                <TouchableOpacity onPress={handleResend} disabled={resending}>
+                  <Text className="text-sm text-gray-500">
+                    Didn't receive the code?{" "}
+                    <Text className="font-semibold" style={{ color: colors.primary }}>
+                      {resending ? "Sending..." : "Resend"}
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
