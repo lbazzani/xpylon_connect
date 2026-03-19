@@ -10,7 +10,7 @@ import { colors } from "../../../lib/theme";
 import type { Connection, User } from "@xpylon/shared";
 import { useAuthStore } from "../../../store/auth";
 
-export default function ReteScreen() {
+export default function NetworkScreen() {
   const [contacts, setContacts] = useState<User[]>([]);
   const [pending, setPending] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,11 +24,9 @@ export default function ReteScreen() {
         api.get("/connections"),
         api.get("/connections/pending"),
       ]);
-
-      const contactList = connData.connections.map((c: Connection) => {
-        return c.requesterId === currentUser?.id ? c.addressee : c.requester;
-      }).filter(Boolean) as User[];
-
+      const contactList = connData.connections.map((c: Connection) =>
+        c.requesterId === currentUser?.id ? c.addressee : c.requester
+      ).filter(Boolean) as User[];
       setContacts(contactList);
       setPending(pendData.connections);
     } catch {} finally {
@@ -50,13 +48,21 @@ export default function ReteScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <Text className="text-2xl font-bold text-gray-900">Network</Text>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
+        <View>
+          <Text className="text-xl font-bold text-gray-900">Network</Text>
+          {contacts.length > 0 && (
+            <Text className="text-xs text-gray-400 mt-0.5">{contacts.length} contact{contacts.length !== 1 ? "s" : ""}</Text>
+          )}
+        </View>
         <TouchableOpacity
-          onPress={() => {/* TODO: open invite sheet */}}
-          className="w-10 h-10 bg-primary rounded-full items-center justify-center"
+          onPress={() => {}}
+          className="w-9 h-9 rounded-full items-center justify-center"
+          style={{ backgroundColor: colors.primary }}
+          activeOpacity={0.7}
         >
-          <Ionicons name="person-add-outline" size={20} color={colors.white} />
+          <Ionicons name="person-add-outline" size={18} color={colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -65,10 +71,11 @@ export default function ReteScreen() {
         keyExtractor={(item) => item.id}
         onRefresh={fetchData}
         refreshing={loading}
+        contentContainerStyle={contacts.length === 0 && !loading ? { flex: 1 } : undefined}
         ListHeaderComponent={
           pending.length > 0 ? (
-            <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-500 uppercase px-4 mb-2">
+            <View className="pt-4 pb-2">
+              <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 mb-3">
                 Pending requests
               </Text>
               {pending.map((conn) => (
@@ -80,23 +87,42 @@ export default function ReteScreen() {
                   onDecline={handleDecline}
                 />
               ))}
-              <Text className="text-sm font-semibold text-gray-500 uppercase px-4 mt-4 mb-2">
+              <View className="h-px bg-gray-100 mx-5 my-4" />
+              <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 mb-1">
                 Your contacts
               </Text>
             </View>
-          ) : (
-            <Text className="text-sm font-semibold text-gray-500 uppercase px-4 mb-2">
-              Your contacts
-            </Text>
-          )
+          ) : contacts.length > 0 ? (
+            <View className="pt-4">
+              <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 mb-1">
+                Your contacts
+              </Text>
+            </View>
+          ) : null
         }
         renderItem={({ item }) => (
-          <ContactRow user={item} onPress={() => {/* TODO: open contact detail */}} />
+          <ContactRow user={item} onPress={() => {}} />
         )}
         ListEmptyComponent={
           !loading ? (
-            <View className="items-center py-20">
-              <Text className="text-gray-400 text-base">No contacts</Text>
+            <View className="flex-1 items-center justify-center px-12">
+              <View className="w-16 h-16 rounded-2xl bg-gray-50 items-center justify-center mb-5">
+                <Ionicons name="people-outline" size={28} color={colors.gray300} />
+              </View>
+              <Text className="text-lg font-semibold text-gray-900 text-center mb-2">
+                Build your network
+              </Text>
+              <Text className="text-sm text-gray-400 text-center leading-5">
+                Invite business contacts to connect and start exploring opportunities together.
+              </Text>
+              <TouchableOpacity
+                className="mt-6 flex-row items-center px-5 py-2.5 rounded-full"
+                style={{ backgroundColor: colors.primary }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="person-add-outline" size={16} color={colors.white} />
+                <Text className="text-white font-semibold text-sm ml-2">Invite a contact</Text>
+              </TouchableOpacity>
             </View>
           ) : null
         }

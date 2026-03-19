@@ -7,11 +7,10 @@ import { useConversations } from "../../../hooks/useConversations";
 import { ConversationItem } from "../../../components/chat/ConversationItem";
 import { useAuthStore } from "../../../store/auth";
 import { colors } from "../../../lib/theme";
-import type { ConversationType } from "@xpylon/shared";
 
 type Filter = "all" | "DIRECT" | "OPPORTUNITY_GROUP";
 
-export default function MessaggiScreen() {
+export default function MessagesScreen() {
   const { conversations, isLoading, refetch } = useConversations();
   const [filter, setFilter] = useState<Filter>("all");
   const user = useAuthStore((s) => s.user);
@@ -28,26 +27,36 @@ export default function MessaggiScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <Text className="text-2xl font-bold text-gray-900">Messages</Text>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
+        <Text className="text-xl font-bold text-gray-900">Messages</Text>
         <TouchableOpacity
-          onPress={() => {/* TODO: open new conversation sheet */}}
-          className="w-10 h-10 bg-primary rounded-full items-center justify-center"
+          onPress={() => {}}
+          className="w-9 h-9 rounded-full items-center justify-center"
+          style={{ backgroundColor: colors.primary }}
+          activeOpacity={0.7}
         >
-          <Ionicons name="create-outline" size={22} color={colors.white} />
+          <Ionicons name="create-outline" size={18} color={colors.white} />
         </TouchableOpacity>
       </View>
 
-      <View className="flex-row px-4 mb-2 gap-2">
+      {/* Filters */}
+      <View className="flex-row px-5 py-3 gap-2">
         {filters.map((f) => (
           <TouchableOpacity
             key={f.key}
             onPress={() => setFilter(f.key)}
             className={`px-4 py-1.5 rounded-full ${
-              filter === f.key ? "bg-primary" : "bg-background-secondary"
+              filter === f.key ? "" : "bg-gray-50"
             }`}
+            style={filter === f.key ? { backgroundColor: colors.gray900 } : undefined}
+            activeOpacity={0.7}
           >
-            <Text className={`text-sm font-medium ${filter === f.key ? "text-white" : "text-gray-600"}`}>
+            <Text
+              className={`text-sm font-medium ${
+                filter === f.key ? "text-white" : "text-gray-500"
+              }`}
+            >
               {f.label}
             </Text>
           </TouchableOpacity>
@@ -66,10 +75,29 @@ export default function MessaggiScreen() {
         )}
         onRefresh={refetch}
         refreshing={isLoading}
+        contentContainerStyle={filtered.length === 0 && !isLoading ? { flex: 1 } : undefined}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-gray-400 text-base">No conversations</Text>
-          </View>
+          !isLoading ? (
+            <View className="flex-1 items-center justify-center px-12">
+              <View className="w-16 h-16 rounded-2xl bg-gray-50 items-center justify-center mb-5">
+                <Ionicons name="chatbubbles-outline" size={28} color={colors.gray300} />
+              </View>
+              <Text className="text-lg font-semibold text-gray-900 text-center mb-2">
+                No messages yet
+              </Text>
+              <Text className="text-sm text-gray-400 text-center leading-5">
+                Start a conversation with one of your contacts to begin collaborating.
+              </Text>
+              <TouchableOpacity
+                className="mt-6 flex-row items-center px-5 py-2.5 rounded-full"
+                style={{ backgroundColor: colors.primary }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={16} color={colors.white} />
+                <Text className="text-white font-semibold text-sm ml-2">New conversation</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null
         }
       />
     </SafeAreaView>
