@@ -1,8 +1,7 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
-import path from "path";
 import { authMiddleware } from "../middleware/auth";
-import { uploadFile, getFilePath, STORAGE_ROOT } from "../lib/storage";
+import { uploadFile, getFilePath } from "../lib/storage";
 import prisma from "../lib/prisma";
 
 const router = Router();
@@ -10,6 +9,11 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
 });
+
+function paramStr(val: string | string[] | undefined): string {
+  if (Array.isArray(val)) return val.join("/");
+  return val || "";
+}
 
 // POST /storage/upload — upload file(s), returns storage object IDs
 router.post("/upload", authMiddleware, upload.array("files", 10), async (req: Request, res: Response) => {
@@ -32,17 +36,15 @@ router.post("/upload", authMiddleware, upload.array("files", 10), async (req: Re
   }
 });
 
-// GET /storage/:bucket/:key(*) — serve file (supports nested paths)
-router.get("/:bucket/*", async (req: Request, res: Response) => {
+// GET /storage/:bucket/:key — serve file
+router.get("/:bucket/:key", async (req: Request, res: Response) => {
   try {
-    const bucket = req.params.bucket;
-    const key = req.params[0] as string;
-    // Optional: request specific variant via query param
-    const variant = req.query.variant as string | undefined;
+    const bucket = paramStr(req.params.bucket);
+    const key = paramStr(req.params.key);
+    const variant = typeof req.query.variant === "string" ? req.query.variant : undefined;
 
     let fileKey = key;
     if (variant && ["thumbnail", "medium", "large"].includes(variant)) {
-      // Check if this is an image with variants
       const obj = await prisma.storageObject.findUnique({ where: { key } });
       if (obj?.variants && typeof obj.variants === "object") {
         const variants = obj.variants as Record<string, string>;
