@@ -1,5 +1,21 @@
 {
   "name": "xpylon_connect",
   "private": true,
-  "workspaces": ["mobile", "api", "shared"]
+  "workspaces": [
+    "mobile",
+    "api",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,mobile -c blue,magenta \"npm run dev -w api\" \"npm start -w mobile\"",
+    "dev:api": "npm run dev -w api",
+    "dev:mobile": "npm start -w mobile",
+    "db:start": "docker start xpylon-postgres",
+    "db:migrate": "npm run prisma:migrate -w api",
+    "db:studio": "npm run prisma:studio -w api",
+    "setup": "docker start xpylon-postgres && npm run db:migrate && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }
