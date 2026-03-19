@@ -3,6 +3,7 @@ import twilio from "twilio";
 import prisma from "../lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/jwt";
 import { authMiddleware } from "../middleware/auth";
+import { createWelcomeConversation } from "../lib/bot";
 
 const router = Router();
 
@@ -83,6 +84,12 @@ router.post("/verify-otp", async (req, res) => {
 
     const accessToken = signAccessToken(user.id);
     const refreshToken = signRefreshToken(user.id);
+
+    // Create welcome conversation with Xpylon bot for new users
+    if (isNewUser) {
+      createWelcomeConversation(user.id).catch(console.error);
+    }
+
     res.json({ accessToken, refreshToken, isNewUser });
   } catch (err) {
     console.error("OTP verify error:", err);

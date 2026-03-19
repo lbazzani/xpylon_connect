@@ -3,6 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { verifyAccessToken } from "./lib/jwt";
 import prisma from "./lib/prisma";
 import { notifyNewMessage, notifyIncomingCall, notifyMissedCall } from "./lib/notifications";
+import { isBotConversation, generateBotReply, getBotUserId } from "./lib/bot";
 
 interface AuthenticatedSocket extends WebSocket {
   userId?: string;
@@ -177,6 +178,37 @@ export function setupWebSocket(server: http.Server) {
               conv.type,
               conv.name || undefined
             ).catch(console.error);
+          }
+
+          // ── Bot auto-reply ──
+          const isBot = await isBotConversation(data.conversationId);
+          if (isBot && data.content) {
+            // Reply asynchronously so we don't block the user
+            (async () => {
+              try {
+                const botId = await getBotUserId();
+                if (ws.userId === botId) return; // Don't reply to self
+
+                const reply = await generateBotReply(data.conversationId, ws.userId!, data.content);
+
+                const botMessage = await prisma.message.create({
+                  data: {
+                    conversationId: data.conversationId,
+                    senderId: botId,
+                    content: reply,
+                    type: "TEXT",
+                  },
+                  include: MESSAGE_INCLUDE,
+                });
+
+                await broadcastToConversation(
+                  data.conversationId,
+                  JSON.stringify({ type: "new_message", conversationId: data.conversationId, message: botMessage })
+                );
+              } catch (err) {
+                console.error("Bot reply error:", err);
+              }
+            })();
           }
         }
 
