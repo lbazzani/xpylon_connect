@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import prisma from "./prisma";
+import { generateAndSaveEmbedding, findSimilarUsers, formatSuggestionForBot } from "./matching";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -20,6 +21,9 @@ Your responsibilities:
    - What kind of business opportunities they're interested in
 3. SUGGEST connections and help users understand the platform
 4. ANSWER questions about how Xpylon Connect works
+5. SUGGEST connections: When the user asks for connections or seems ready, you can suggest matches.
+   Use the phrase "[SUGGEST_MATCHES]" in your response when you want to show suggestions.
+   The system will replace this with actual matching results.
 
 Rules:
 - Always respond in English
@@ -162,7 +166,14 @@ export async function generateBotReply(
     const reply = completion.choices[0]?.message?.content?.trim();
     if (!reply) return "I'm here if you need anything! Just send me a message.";
 
-    // Check if user provided profile info and update it
+    // Handle suggestion trigger
+    if (reply.includes("[SUGGEST_MATCHES]")) {
+      const suggestions = await findSimilarUsers(userId, 3);
+      const formatted = formatSuggestionForBot(suggestions);
+      return reply.replace("[SUGGEST_MATCHES]", formatted);
+    }
+
+    // Update embedding after each message
     await maybeUpdateProfile(userId, userMessage, user);
 
     return reply;
@@ -174,12 +185,12 @@ export async function generateBotReply(
 
 async function maybeUpdateProfile(
   userId: string,
-  message: string,
-  user: any
+  _message: string,
+  _user: any
 ): Promise<void> {
-  // Simple heuristic: if user mentions a job title and they don't have one
-  // More sophisticated extraction could use OpenAI function calling
-  // For now, let the bot guide the conversation and use /auth/profile endpoint
+  // Regenerate embedding whenever user sends a message to the bot
+  // The profile may have been updated via the register/profile endpoints
+  await generateAndSaveEmbedding(userId);
 }
 
 export async function isBotConversation(conversationId: string): Promise<boolean> {

@@ -4,6 +4,7 @@ import prisma from "../lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/jwt";
 import { authMiddleware } from "../middleware/auth";
 import { createWelcomeConversation } from "../lib/bot";
+import { generateAndSaveEmbedding } from "../lib/matching";
 
 const router = Router();
 
@@ -143,6 +144,10 @@ router.post("/register", authMiddleware, async (req, res) => {
       data: { firstName, lastName, email, companyId: company.id },
       include: { company: true },
     });
+
+    // Generate profile embedding for matching
+    generateAndSaveEmbedding(user.id).catch(console.error);
+
     res.json({ user });
   } catch (err) {
     res.status(500).json({ error: "Registration failed" });
@@ -158,6 +163,10 @@ router.patch("/profile", authMiddleware, async (req, res) => {
       data: { bio, role, profileCompleted: true },
       include: { company: true },
     });
+
+    // Regenerate embedding with updated profile
+    generateAndSaveEmbedding(user.id).catch(console.error);
+
     res.json({ user });
   } catch (err) {
     res.status(500).json({ error: "Profile update failed" });

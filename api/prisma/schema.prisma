@@ -15,7 +15,9 @@ model User {
   lastName         String
   bio              String?
   role             String?
+  industry         String?
   companyId        String?
+  embedding        Unsupported("vector(1536)")?
   profileCompleted Boolean   @default(false)
   lastSeenAt       DateTime?
   isOnline         Boolean   @default(false)

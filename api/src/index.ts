@@ -9,6 +9,7 @@ import { connectionsRouter } from "./routes/connections";
 import { invitesRouter } from "./routes/invites";
 import { conversationsRouter } from "./routes/conversations";
 import { storageRouter } from "./routes/storage";
+import { suggestionsRouter } from "./routes/suggestions";
 import { setupWebSocket } from "./ws";
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/connections", connectionsRouter);
 app.use("/invites", invitesRouter);
 app.use("/conversations", conversationsRouter);
 app.use("/storage", storageRouter);
+app.use("/suggestions", suggestionsRouter);
 app.use("/files", express.static("uploads"));
 
 app.get("/health", (_req, res) => {

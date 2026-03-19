@@ -49,6 +49,7 @@ export interface User {
   company?: Company;
   bio?: string;
   role?: string;
+  industry?: string;
   profileCompleted: boolean;
   lastSeenAt?: string;
   isOnline?: boolean;
