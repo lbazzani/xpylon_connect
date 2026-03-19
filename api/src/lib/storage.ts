@@ -4,7 +4,9 @@ import crypto from "crypto";
 import sharp from "sharp";
 import prisma from "./prisma";
 
-export const STORAGE_ROOT = path.resolve(__dirname, "../../storage");
+export const STORAGE_ROOT = path.resolve(
+  process.env.STORAGE_PATH || path.join(__dirname, "../../storage")
+);
 
 // Image variant configs
 const IMAGE_VARIANTS = {
