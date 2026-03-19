@@ -1,5 +1,7 @@
 import { TouchableOpacity, View, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Avatar } from "../ui/Avatar";
+import { colors } from "../../lib/theme";
 import type { Conversation, ConversationType } from "@xpylon/shared";
 
 interface ConversationItemProps {
@@ -27,8 +29,8 @@ export function ConversationItem({ conversation, currentUserId, onPress }: Conve
   return (
     <TouchableOpacity onPress={onPress} className="flex-row items-center px-4 py-3">
       {isGroup ? (
-        <View className="w-12 h-12 rounded-lg bg-accent-green items-center justify-center">
-          <Text className="text-white text-lg">{"\uD83D\uDC65"}</Text>
+        <View className="w-12 h-12 rounded-lg items-center justify-center" style={{ backgroundColor: colors.blue }}>
+          <Ionicons name="people" size={20} color={colors.white} />
         </View>
       ) : otherMember ? (
         <Avatar firstName={otherMember.firstName} lastName={otherMember.lastName} />

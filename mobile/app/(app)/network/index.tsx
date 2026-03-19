@@ -2,9 +2,11 @@ import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { ContactRow } from "../../../components/rete/ContactRow";
 import { PendingRequestCard } from "../../../components/rete/PendingRequestCard";
 import { api } from "../../../lib/api";
+import { colors } from "../../../lib/theme";
 import type { Connection, User } from "@xpylon/shared";
 import { useAuthStore } from "../../../store/auth";
 
@@ -54,7 +56,7 @@ export default function ReteScreen() {
           onPress={() => {/* TODO: open invite sheet */}}
           className="w-10 h-10 bg-primary rounded-full items-center justify-center"
         >
-          <Text className="text-white text-xl">+</Text>
+          <Ionicons name="person-add-outline" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
 

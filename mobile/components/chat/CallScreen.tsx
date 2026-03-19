@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, Modal, Animated, Dimensions } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import type { Call } from "@xpylon/shared";
 import { colors } from "../../lib/theme";
 
@@ -37,15 +38,15 @@ function CallAvatar({ name, size = 96 }: { name: string; size?: number }) {
 }
 
 function CallButton({
-  icon,
+  iconName,
   label,
   onPress,
   color = "bg-white/15",
-  iconColor = "text-white",
+  iconColor = colors.white,
   size = 60,
   active = false,
 }: {
-  icon: string;
+  iconName: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   color?: string;
@@ -59,9 +60,11 @@ function CallButton({
         style={{ width: size, height: size, borderRadius: size / 2 }}
         className={`items-center justify-center ${active ? "bg-white" : color}`}
       >
-        <Text style={{ fontSize: size * 0.4 }} className={active ? "text-gray-900" : iconColor}>
-          {icon}
-        </Text>
+        <Ionicons
+          name={iconName}
+          size={size * 0.4}
+          color={active ? colors.gray900 : iconColor}
+        />
       </View>
       <Text className="text-white/70 text-xs mt-2 font-medium">{label}</Text>
     </TouchableOpacity>
@@ -203,14 +206,14 @@ export function CallScreen({ call, callerName, isIncoming, isConnected, onAccept
               <View>
                 <View className="flex-row justify-between px-12 mb-6">
                   <CallButton
-                    icon="✕"
+                    iconName="close"
                     label="Decline"
                     onPress={onDecline}
                     color="bg-red-500"
                     size={64}
                   />
                   <CallButton
-                    icon="📞"
+                    iconName="call"
                     label="Accept"
                     onPress={onAccept}
                     color="bg-green-500"
@@ -223,27 +226,27 @@ export function CallScreen({ call, callerName, isIncoming, isConnected, onAccept
               <View>
                 <View className="flex-row justify-between px-4 mb-8">
                   <CallButton
-                    icon={isMuted ? "🔇" : "🎤"}
+                    iconName={isMuted ? "mic-off" : "mic"}
                     label={isMuted ? "Unmute" : "Mute"}
                     onPress={() => setIsMuted(!isMuted)}
                     active={isMuted}
                   />
                   <CallButton
-                    icon={isSpeaker ? "🔊" : "🔈"}
-                    label={isSpeaker ? "Speaker" : "Speaker"}
+                    iconName={isSpeaker ? "volume-high" : "volume-medium"}
+                    label="Speaker"
                     onPress={() => setIsSpeaker(!isSpeaker)}
                     active={isSpeaker}
                   />
                   {call.type === "VIDEO" && (
                     <CallButton
-                      icon={isVideoEnabled ? "📹" : "📷"}
+                      iconName={isVideoEnabled ? "videocam" : "videocam-off"}
                       label={isVideoEnabled ? "Camera on" : "Camera off"}
                       onPress={() => setIsVideoEnabled(!isVideoEnabled)}
                       active={!isVideoEnabled}
                     />
                   )}
                   <CallButton
-                    icon="⋯"
+                    iconName="ellipsis-horizontal"
                     label="More"
                     onPress={() => {}}
                   />
@@ -255,7 +258,7 @@ export function CallScreen({ call, callerName, isIncoming, isConnected, onAccept
                   className="self-center w-16 h-16 rounded-full bg-red-500 items-center justify-center"
                   activeOpacity={0.7}
                 >
-                  <Text className="text-white text-2xl">📞</Text>
+                  <Ionicons name="call" size={24} color={colors.white} />
                 </TouchableOpacity>
                 <Text className="text-white/40 text-xs text-center mt-2">End call</Text>
               </View>

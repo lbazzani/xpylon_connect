@@ -1,19 +1,22 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../lib/theme";
 
 export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#F15A24",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.gray400,
         tabBarStyle: {
-          borderTopColor: "#F3F4F6",
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.white,
+          borderTopColor: colors.borderLight,
+          borderTopWidth: 0.5,
+          paddingTop: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: "600",
         },
       }}
@@ -22,21 +25,27 @@ export default function AppLayout() {
         name="messages"
         options={{
           title: "Messages",
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>{"\uD83D\uDCAC"}</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubbles-outline" size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="network"
         options={{
           title: "Network",
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>{"\uD83D\uDC65"}</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>{"\uD83D\uDC64"}</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={22} color={color} />
+          ),
         }}
       />
     </Tabs>

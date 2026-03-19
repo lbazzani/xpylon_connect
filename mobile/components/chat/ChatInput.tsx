@@ -1,6 +1,8 @@
 import { View, TextInput, TouchableOpacity, Text, Image } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../lib/theme";
 import type { Message } from "@xpylon/shared";
 
 interface ChatInputProps {
@@ -89,11 +91,11 @@ export function ChatInput({ onSend, onSendAttachments, onTyping, onStopTyping, r
           <View className="flex-1 border-l-4 border-primary pl-3">
             <Text className="text-xs font-bold text-primary">{replyingTo.sender?.firstName || ""}</Text>
             <Text className="text-xs text-gray-500 mt-0.5" numberOfLines={1}>
-              {replyingTo.content || "📎 Attachment"}
+              {replyingTo.content || "Attachment"}
             </Text>
           </View>
           <TouchableOpacity onPress={onCancelReply} className="ml-3 p-1">
-            <Text className="text-gray-400 text-lg font-bold">✕</Text>
+            <Ionicons name="close" size={18} color={colors.gray400} />
           </TouchableOpacity>
         </View>
       )}
@@ -108,7 +110,7 @@ export function ChatInput({ onSend, onSendAttachments, onTyping, onStopTyping, r
                 onPress={() => removeImage(uri)}
                 className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-700 rounded-full items-center justify-center"
               >
-                <Text className="text-white text-xs font-bold">✕</Text>
+                <Ionicons name="close" size={12} color={colors.white} />
               </TouchableOpacity>
             </View>
           ))}
@@ -119,10 +121,10 @@ export function ChatInput({ onSend, onSendAttachments, onTyping, onStopTyping, r
       <View className="flex-row items-end px-2 py-2">
         {/* Attachment buttons */}
         <TouchableOpacity onPress={handlePickImage} className="w-10 h-10 items-center justify-center">
-          <Text className="text-xl text-gray-500">📎</Text>
+          <Ionicons name="attach-outline" size={22} color={colors.gray500} />
         </TouchableOpacity>
         <TouchableOpacity onPress={handleCamera} className="w-10 h-10 items-center justify-center">
-          <Text className="text-xl text-gray-500">📷</Text>
+          <Ionicons name="camera-outline" size={22} color={colors.gray500} />
         </TouchableOpacity>
 
         {/* Text input */}
@@ -144,7 +146,7 @@ export function ChatInput({ onSend, onSendAttachments, onTyping, onStopTyping, r
           className={`w-11 h-11 rounded-full items-center justify-center ${canSend ? "bg-primary" : "bg-gray-200"}`}
           disabled={!canSend}
         >
-          <Text className={`text-lg ${canSend ? "text-white" : "text-gray-400"}`}>▶</Text>
+          <Ionicons name="send" size={18} color={canSend ? colors.white : colors.gray400} />
         </TouchableOpacity>
       </View>
     </View>

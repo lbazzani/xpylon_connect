@@ -11,15 +11,14 @@ module.exports = {
           dark: "#D14A1A",
         },
         accent: {
-          green: "#34C759",
-          amber: "#FF9500",
-          red: "#FF3B30",
-          blue: "#007AFF",
+          green: "#10B981",
+          amber: "#F59E0B",
+          red: "#EF4444",
+          blue: "#3B82F6",
         },
         background: {
           DEFAULT: "#FFFFFF",
-          secondary: "#F5F5F7",
-          chat: "#ECE5DD",
+          secondary: "#F9FAFB",
         },
       },
       fontSize: {

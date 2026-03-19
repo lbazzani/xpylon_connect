@@ -2,9 +2,11 @@ import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useConversations } from "../../../hooks/useConversations";
 import { ConversationItem } from "../../../components/chat/ConversationItem";
 import { useAuthStore } from "../../../store/auth";
+import { colors } from "../../../lib/theme";
 import type { ConversationType } from "@xpylon/shared";
 
 type Filter = "all" | "DIRECT" | "OPPORTUNITY_GROUP";
@@ -32,7 +34,7 @@ export default function MessaggiScreen() {
           onPress={() => {/* TODO: open new conversation sheet */}}
           className="w-10 h-10 bg-primary rounded-full items-center justify-center"
         >
-          <Text className="text-white text-xl">+</Text>
+          <Ionicons name="create-outline" size={22} color={colors.white} />
         </TouchableOpacity>
       </View>
 

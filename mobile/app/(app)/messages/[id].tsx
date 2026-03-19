@@ -3,18 +3,20 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { MessageBubble } from "../../../components/chat/MessageBubble";
 import { ChatInput } from "../../../components/chat/ChatInput";
 import { DateSeparator } from "../../../components/chat/DateSeparator";
 import { TypingIndicator } from "../../../components/chat/TypingIndicator";
 import { CallScreen } from "../../../components/chat/CallScreen";
+import { colors } from "../../../lib/theme";
 import type { CallType } from "@xpylon/shared";
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import { useAuthStore } from "../../../store/auth";
 import { api } from "../../../lib/api";
 import type { Message, Conversation, WsServerEvent, Call } from "@xpylon/shared";
 
-const SENDER_COLORS = ["#F15A24", "#34C759", "#007AFF", "#AF52DE", "#FF9500", "#FF3B30", "#5856D6", "#00C7BE"];
+const SENDER_COLORS = ["#F15A24", "#10B981", "#3B82F6", "#AF52DE", "#F59E0B", "#EF4444", "#5856D6", "#00C7BE"];
 
 function isSameDay(d1: string, d2: string): boolean {
   return new Date(d1).toDateString() === new Date(d2).toDateString();
@@ -250,11 +252,11 @@ export default function ChatScreen() {
       {/* Header */}
       <View className="flex-row items-center px-3 py-2.5 bg-white border-b border-gray-100">
         <TouchableOpacity onPress={() => router.back()} className="p-1 mr-2">
-          <Text className="text-primary text-2xl font-light">‹</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         {isGroup ? (
-          <View className="w-10 h-10 rounded-lg bg-accent-green items-center justify-center mr-3">
-            <Text className="text-white text-sm">👥</Text>
+          <View className="w-10 h-10 rounded-lg items-center justify-center mr-3" style={{ backgroundColor: colors.blue }}>
+            <Ionicons name="people" size={18} color={colors.white} />
           </View>
         ) : otherMember ? (
           <View className="w-10 h-10 rounded-full bg-primary items-center justify-center mr-3">
@@ -275,13 +277,13 @@ export default function ChatScreen() {
           onPress={() => handleStartCall("VOICE")}
           className="p-2 mr-1"
         >
-          <Text className="text-xl">📞</Text>
+          <Ionicons name="call-outline" size={20} color={colors.gray700} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => handleStartCall("VIDEO")}
           className="p-2"
         >
-          <Text className="text-xl">📹</Text>
+          <Ionicons name="videocam-outline" size={20} color={colors.gray700} />
         </TouchableOpacity>
       </View>
 
@@ -292,7 +294,7 @@ export default function ChatScreen() {
       >
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#F15A24" />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           <FlatList
@@ -318,7 +320,7 @@ export default function ChatScreen() {
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8 }}
             onEndReached={loadMoreMessages}
             onEndReachedThreshold={0.3}
-            ListFooterComponent={loadingMore ? <ActivityIndicator className="py-4" color="#F15A24" /> : null}
+            ListFooterComponent={loadingMore ? <ActivityIndicator className="py-4" color={colors.primary} /> : null}
           />
         )}
 

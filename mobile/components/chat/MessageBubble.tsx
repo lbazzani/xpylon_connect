@@ -34,7 +34,7 @@ export function MessageBubble({ message, isOwn, showSenderName, senderColor, onR
     const receipts = message.receipts || [];
     const hasRead = receipts.some((r) => r.readAt);
     const hasDelivered = receipts.length > 0;
-    if (hasRead) return <Text className="text-xs ml-1" style={{ color: "#53BDEB" }}>✓✓</Text>;
+    if (hasRead) return <Text className="text-xs ml-1" style={{ color: "#3B82F6" }}>✓✓</Text>;
     if (hasDelivered) return <Text className="text-xs text-gray-400 ml-1">✓✓</Text>;
     return <Text className="text-xs text-gray-400 ml-1">✓</Text>;
   };
@@ -91,9 +91,10 @@ export function MessageBubble({ message, isOwn, showSenderName, senderColor, onR
           isDeleted
             ? "bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5"
             : isOwn
-            ? "bg-primary rounded-2xl rounded-br-[4px]"
-            : "bg-white border border-gray-100 rounded-2xl rounded-bl-[4px]"
+            ? "rounded-2xl rounded-br-[4px]"
+            : "bg-gray-100 rounded-2xl rounded-bl-[4px]"
         }`}
+        style={!isDeleted && isOwn ? { backgroundColor: "#1B1B1B" } : undefined}
       >
         {/* Sender name (groups only) */}
         {showSenderName && message.sender && !isDeleted && (
@@ -117,13 +118,13 @@ export function MessageBubble({ message, isOwn, showSenderName, senderColor, onR
               className={`text-xs mt-0.5 ${isOwn ? "text-white/60" : "text-gray-500"}`}
               numberOfLines={2}
             >
-              {message.replyTo.deletedAt ? "Message deleted" : message.replyTo.content || "📎 Attachment"}
+              {message.replyTo.deletedAt ? "Message deleted" : message.replyTo.content || "Attachment"}
             </Text>
           </View>
         )}
 
         {isDeleted ? (
-          <Text className="text-sm text-gray-400 italic">🚫 Message deleted</Text>
+          <Text className="text-sm text-gray-400 italic">Message deleted</Text>
         ) : (
           <>
             {/* Images */}

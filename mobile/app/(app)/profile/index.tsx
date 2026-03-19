@@ -1,7 +1,9 @@
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useAuth } from "../../../hooks/useAuth";
+import { colors } from "../../../lib/theme";
 
 export default function ProfiloScreen() {
   const { user, logout } = useAuth();
@@ -16,10 +18,10 @@ export default function ProfiloScreen() {
   if (!user) return null;
 
   const menuItems = [
-    { label: "Edit profile", color: "text-primary", icon: "\u270F\uFE0F" },
-    { label: "My company", color: "text-blue-500", icon: "\uD83C\uDFE2" },
-    { label: "Notifications", color: "text-accent-green", icon: "\uD83D\uDD14" },
-    { label: "Privacy & security", color: "text-gray-500", icon: "\uD83D\uDD12" },
+    { label: "Edit profile", iconName: "create-outline" as const, color: colors.primary },
+    { label: "My company", iconName: "business-outline" as const, color: colors.blue },
+    { label: "Notifications", iconName: "notifications-outline" as const, color: colors.green },
+    { label: "Privacy & security", iconName: "shield-outline" as const, color: colors.gray600 },
   ];
 
   return (
@@ -54,8 +56,10 @@ export default function ProfiloScreen() {
               key={item.label}
               className="flex-row items-center py-4 border-b border-gray-100"
             >
-              <Text className="text-lg mr-3">{item.icon}</Text>
-              <Text className={`text-base font-medium ${item.color} flex-1`}>{item.label}</Text>
+              <View className="mr-3">
+                <Ionicons name={item.iconName} size={20} color={item.color} />
+              </View>
+              <Text className="text-base font-medium text-gray-900 flex-1">{item.label}</Text>
               <Text className="text-gray-300 text-lg">{"\u203A"}</Text>
             </TouchableOpacity>
           ))}
@@ -63,8 +67,10 @@ export default function ProfiloScreen() {
             onPress={handleLogout}
             className="flex-row items-center py-4"
           >
-            <Text className="text-lg mr-3">{"\uD83D\uDEAA"}</Text>
-            <Text className="text-base font-medium text-accent-red">Sign out</Text>
+            <View className="mr-3">
+              <Ionicons name="log-out-outline" size={20} color={colors.red} />
+            </View>
+            <Text className="text-base font-medium" style={{ color: colors.red }}>Sign out</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

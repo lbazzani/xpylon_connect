@@ -12,7 +12,7 @@ interface PendingRequestCardProps {
 
 export function PendingRequestCard({ user, connectionId, onAccept, onDecline }: PendingRequestCardProps) {
   return (
-    <View className="mx-4 mb-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+    <View className="mx-4 mb-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
       <View className="flex-row items-center mb-3">
         <Avatar firstName={user.firstName} lastName={user.lastName} />
         <View className="ml-3 flex-1">

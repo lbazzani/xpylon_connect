@@ -2,25 +2,15 @@
 // ALL colors, typography, spacing referenced from here
 
 export const colors = {
-  // Brand
+  // Brand — use sparingly for key accents only
   primary: "#F15A24",
   primaryLight: "#F47B52",
   primaryDark: "#D14A1A",
 
-  // Accent
-  green: "#34C759",
-  greenLight: "#E8F8ED",
-  amber: "#FF9500",
-  amberLight: "#FFF3E0",
-  red: "#FF3B30",
-  redLight: "#FFEBEE",
-  blue: "#007AFF",
-  blueLight: "#53BDEB",
-
-  // Neutral
+  // Professional neutrals
   white: "#FFFFFF",
-  gray50: "#FAFAFA",
-  gray100: "#F5F5F7",
+  gray50: "#F9FAFB",
+  gray100: "#F3F4F6",
   gray200: "#E5E7EB",
   gray300: "#D1D5DB",
   gray400: "#9CA3AF",
@@ -32,30 +22,44 @@ export const colors = {
   black: "#000000",
 
   // Semantic
+  green: "#10B981",
+  greenLight: "#ECFDF5",
+  amber: "#F59E0B",
+  amberLight: "#FFFBEB",
+  red: "#EF4444",
+  redLight: "#FEF2F2",
+  blue: "#3B82F6",
+  blueLight: "#EFF6FF",
+
+  // Surfaces
   background: "#FFFFFF",
-  backgroundSecondary: "#F5F5F7",
-  chatBackground: "#ECE5DD",
+  backgroundSecondary: "#F9FAFB",
   surface: "#FFFFFF",
+  chatBackground: "#FFFFFF",
+
+  // Text
   textPrimary: "#111827",
   textSecondary: "#6B7280",
   textMuted: "#9CA3AF",
+
+  // Borders
   border: "#E5E7EB",
   borderLight: "#F3F4F6",
 
-  // Message bubbles
-  bubbleOwn: "#F15A24",
+  // Message bubbles — professional, not colorful
+  bubbleOwn: "#1B1B1B",
   bubbleOwnText: "#FFFFFF",
-  bubbleOther: "#FFFFFF",
+  bubbleOther: "#F3F4F6",
   bubbleOtherText: "#111827",
-  bubbleBorder: "#F3F4F6",
+  bubbleBorder: "#E5E7EB",
 
   // Receipts
   receiptSent: "#9CA3AF",
-  receiptRead: "#53BDEB",
+  receiptRead: "#3B82F6",
 
-  // Online status
-  online: "#34C759",
-  offline: "#9CA3AF",
+  // Status
+  online: "#10B981",
+  offline: "#D1D5DB",
 } as const;
 
 export const fonts = {
@@ -97,11 +101,11 @@ export const radius = {
 // Sender colors for group chats (distinct, accessible)
 export const senderColors = [
   "#F15A24", // primary orange
-  "#007AFF", // blue
-  "#34C759", // green
+  "#3B82F6", // blue
+  "#10B981", // green
   "#AF52DE", // purple
-  "#FF9500", // amber
-  "#FF3B30", // red
+  "#F59E0B", // amber
+  "#EF4444", // red
   "#5856D6", // indigo
   "#00C7BE", // teal
   "#FF2D55", // pink
