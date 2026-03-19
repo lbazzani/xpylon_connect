@@ -8,6 +8,9 @@ router.use(authMiddleware);
 // GET /conversations — list conversations with last message
 router.get("/", async (req, res) => {
   try {
+    const { cursor, limit = "30" } = req.query;
+    const take = Math.min(parseInt(limit as string, 10) || 30, 100);
+
     const conversations = await prisma.conversation.findMany({
       where: {
         members: { some: { userId: req.userId } },
@@ -17,6 +20,8 @@ router.get("/", async (req, res) => {
         messages: { orderBy: { createdAt: "desc" }, take: 1, include: { sender: true } },
       },
       orderBy: { createdAt: "desc" },
+      take,
+      ...(cursor ? { cursor: { id: cursor as string }, skip: 1 } : {}),
     });
 
     const result = conversations.map((c) => ({
@@ -36,6 +41,17 @@ router.post("/direct", async (req, res) => {
   try {
     const { contactId } = req.body;
     if (!contactId) { res.status(400).json({ error: "contactId is required" }); return; }
+
+    const connection = await prisma.connection.findFirst({
+      where: {
+        status: "ACCEPTED",
+        OR: [
+          { requesterId: req.userId, addresseeId: contactId },
+          { requesterId: contactId, addresseeId: req.userId! },
+        ],
+      },
+    });
+    if (!connection) { res.status(403).json({ error: "Not connected with this user" }); return; }
 
     // Check if direct conversation already exists
     const existing = await prisma.conversation.findFirst({
@@ -76,7 +92,28 @@ router.post("/group", async (req, res) => {
       return;
     }
 
-    const allMembers = [req.userId!, ...memberIds.filter((id: string) => id !== req.userId)];
+    const uniqueIds = [...new Set(memberIds as string[])];
+    const connections = await prisma.connection.findMany({
+      where: {
+        status: "ACCEPTED",
+        OR: uniqueIds.map((id: string) => ({
+          OR: [
+            { requesterId: req.userId, addresseeId: id },
+            { requesterId: id, addresseeId: req.userId! },
+          ],
+        })).flat(),
+      },
+    });
+    const connectedIds = new Set(connections.map((c) =>
+      c.requesterId === req.userId ? c.addresseeId : c.requesterId
+    ));
+    const invalidIds = uniqueIds.filter((id) => !connectedIds.has(id));
+    if (invalidIds.length > 0) {
+      res.status(400).json({ error: "Some members are not in your contacts" });
+      return;
+    }
+
+    const allMembers = [req.userId!, ...uniqueIds.filter((id: string) => id !== req.userId)];
 
     const conversation = await prisma.conversation.create({
       data: {
@@ -102,6 +139,12 @@ router.patch("/:id", async (req, res) => {
     const { name } = req.body;
     const conversation = await prisma.conversation.findUnique({ where: { id: req.params.id } });
     if (!conversation) { res.status(404).json({ error: "Conversation not found" }); return; }
+
+    const isMember = await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: req.params.id as string, userId: req.userId! } }
+    });
+    if (!isMember) { res.status(403).json({ error: "Not a member" }); return; }
+
     if (conversation.createdById !== req.userId) { res.status(403).json({ error: "Only creator can rename" }); return; }
 
     const updated = await prisma.conversation.update({
@@ -118,6 +161,11 @@ router.patch("/:id", async (req, res) => {
 // GET /conversations/:id/messages — paginated messages
 router.get("/:id/messages", async (req, res) => {
   try {
+    const isMember = await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: req.params.id as string, userId: req.userId! } }
+    });
+    if (!isMember) { res.status(403).json({ error: "Not a member" }); return; }
+
     const { cursor, limit = "50" } = req.query;
     const take = Math.min(parseInt(limit as string, 10), 100);
 
@@ -142,6 +190,12 @@ router.post("/:id/members", async (req, res) => {
 
     const conversation = await prisma.conversation.findUnique({ where: { id: req.params.id } });
     if (!conversation) { res.status(404).json({ error: "Conversation not found" }); return; }
+
+    const isMember = await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: req.params.id as string, userId: req.userId! } }
+    });
+    if (!isMember) { res.status(403).json({ error: "Not a member" }); return; }
+
     if (conversation.type !== "OPPORTUNITY_GROUP") { res.status(400).json({ error: "Can only add members to groups" }); return; }
     if (conversation.createdById !== req.userId) { res.status(403).json({ error: "Only creator can add members" }); return; }
 

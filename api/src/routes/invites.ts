@@ -16,6 +16,7 @@ router.post("/", authMiddleware, async (req, res) => {
         senderId: req.userId!,
         phoneTarget,
         token: uuidv4(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
       include: { sender: { include: { company: true } } },
     });

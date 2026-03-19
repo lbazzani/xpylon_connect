@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { View, ActivityIndicator } from "react-native";
+import { registerForPushNotifications, setupNotificationResponseHandler } from "../lib/notifications";
 
 export default function RootLayout() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -21,6 +22,20 @@ export default function RootLayout() {
       router.replace("/(app)/messages");
     }
   }, [isAuthenticated, isLoading, segments]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Register for push notifications
+    registerForPushNotifications();
+
+    // Handle notification taps
+    const subscription = setupNotificationResponseHandler();
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (

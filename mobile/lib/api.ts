@@ -1,7 +1,38 @@
 import { useAuthStore } from "../store/auth";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
-const USE_MOCK = false;
+
+// Mutex for token refresh — prevents concurrent refresh calls
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  // If a refresh is already in flight, wait for it
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const { refreshToken, setTokens } = useAuthStore.getState();
+    if (!refreshToken) return false;
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      setTokens(data.accessToken, refreshToken);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
 
 async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<Response> {
   const { accessToken } = useAuthStore.getState();
@@ -12,6 +43,7 @@ async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<R
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
+
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (response.status === 401) {
@@ -24,24 +56,6 @@ async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<R
   }
 
   return response;
-}
-
-async function refreshAccessToken(): Promise<boolean> {
-  const { refreshToken, setTokens } = useAuthStore.getState();
-  if (!refreshToken) return false;
-  try {
-    const res = await fetch(`${API_URL}/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    setTokens(data.accessToken, refreshToken);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function handleResponse(response: Response) {

@@ -2,6 +2,7 @@ import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { verifyAccessToken } from "./lib/jwt";
 import prisma from "./lib/prisma";
+import { notifyNewMessage, notifyIncomingCall, notifyMissedCall } from "./lib/notifications";
 
 interface AuthenticatedSocket extends WebSocket {
   userId?: string;
@@ -50,6 +51,13 @@ async function broadcastToContacts(userId: string, event: string) {
   }
 }
 
+async function verifyMembership(conversationId: string, userId: string): Promise<boolean> {
+  const member = await prisma.conversationMember.findUnique({
+    where: { conversationId_userId: { conversationId, userId } }
+  });
+  return !!member;
+}
+
 export function setupWebSocket(server: http.Server) {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
@@ -93,11 +101,16 @@ export function setupWebSocket(server: http.Server) {
 
         // ── Send message ──
         if (data.type === "send_message") {
+          if (!(await verifyMembership(data.conversationId, ws.userId!))) return;
+
+          // Determine message type
+          let msgType = "TEXT";
+
           const messageData: any = {
             conversationId: data.conversationId,
             senderId: ws.userId!,
             content: data.content || null,
-            type: data.attachmentIds?.length ? "IMAGE" : "TEXT",
+            type: msgType,
           };
 
           if (data.replyToId) {
@@ -117,6 +130,8 @@ export function setupWebSocket(server: http.Server) {
                 size: obj.size,
               })),
             };
+            const firstObj = storageObjects[0];
+            messageData.type = firstObj?.mimeType.startsWith("image/") ? "IMAGE" : "FILE";
           }
 
           const message = await prisma.message.create({
@@ -149,10 +164,27 @@ export function setupWebSocket(server: http.Server) {
             data.conversationId,
             JSON.stringify({ type: "new_message", conversationId: data.conversationId, message: fullMessage })
           );
+
+          // Send push notification to offline members
+          const conv = await prisma.conversation.findUnique({ where: { id: data.conversationId } });
+          const senderUser = await prisma.user.findUnique({ where: { id: ws.userId! }, include: { company: true } });
+          if (conv && senderUser) {
+            notifyNewMessage(
+              data.conversationId,
+              ws.userId!,
+              `${senderUser.firstName} ${senderUser.lastName}`,
+              data.content || null,
+              conv.type,
+              conv.name || undefined
+            ).catch(console.error);
+          }
         }
 
         // ── Read message ──
         if (data.type === "read_message") {
+          const msgToRead = await prisma.message.findUnique({ where: { id: data.messageId } });
+          if (!msgToRead || !(await verifyMembership(msgToRead.conversationId, ws.userId!))) return;
+
           const receipt = await prisma.messageReceipt.upsert({
             where: { messageId_userId: { messageId: data.messageId, userId: ws.userId! } },
             create: { messageId: data.messageId, userId: ws.userId!, readAt: new Date() },
@@ -192,6 +224,7 @@ export function setupWebSocket(server: http.Server) {
 
         // ── Typing ──
         if (data.type === "typing") {
+          if (!(await verifyMembership(data.conversationId, ws.userId!))) return;
           const typingUser = await prisma.user.findUnique({ where: { id: ws.userId! } });
           if (typingUser) {
             await broadcastToConversation(
@@ -208,6 +241,7 @@ export function setupWebSocket(server: http.Server) {
         }
 
         if (data.type === "stop_typing") {
+          if (!(await verifyMembership(data.conversationId, ws.userId!))) return;
           await broadcastToConversation(
             data.conversationId,
             JSON.stringify({
@@ -221,6 +255,7 @@ export function setupWebSocket(server: http.Server) {
 
         // ── Call start ──
         if (data.type === "call_start") {
+          if (!(await verifyMembership(data.conversationId, ws.userId!))) return;
           const callerUser = await prisma.user.findUnique({ where: { id: ws.userId! } });
           if (!callerUser) return;
 
@@ -255,17 +290,28 @@ export function setupWebSocket(server: http.Server) {
             call,
             callerName: `${callerUser.firstName} ${callerUser.lastName}`,
           }));
+
+          // Send push notification for incoming call
+          if (callerUser) {
+            notifyIncomingCall(
+              data.conversationId,
+              ws.userId!,
+              `${callerUser.firstName} ${callerUser.lastName}`,
+              data.callType
+            ).catch(console.error);
+          }
         }
 
         // ── Call accept ──
         if (data.type === "call_accept") {
+          const call = await prisma.call.findUnique({ where: { id: data.callId } });
+          if (!call) return;
+          if (!(await verifyMembership(call.conversationId, ws.userId!))) return;
+
           await prisma.call.update({
             where: { id: data.callId },
             data: { status: "ONGOING", startedAt: new Date() },
           });
-
-          const call = await prisma.call.findUnique({ where: { id: data.callId } });
-          if (!call) return;
 
           await broadcastToConversation(
             call.conversationId,
@@ -277,6 +323,7 @@ export function setupWebSocket(server: http.Server) {
         if (data.type === "call_decline") {
           const call = await prisma.call.findUnique({ where: { id: data.callId } });
           if (!call) return;
+          if (!(await verifyMembership(call.conversationId, ws.userId!))) return;
 
           await prisma.call.update({
             where: { id: data.callId },
@@ -293,6 +340,7 @@ export function setupWebSocket(server: http.Server) {
         if (data.type === "call_end") {
           const call = await prisma.call.findUnique({ where: { id: data.callId } });
           if (!call) return;
+          if (!(await verifyMembership(call.conversationId, ws.userId!))) return;
 
           await prisma.call.update({
             where: { id: data.callId },
@@ -309,6 +357,7 @@ export function setupWebSocket(server: http.Server) {
         if (data.type === "webrtc_offer" || data.type === "webrtc_answer" || data.type === "webrtc_ice_candidate") {
           const call = await prisma.call.findUnique({ where: { id: data.callId } });
           if (!call) return;
+          if (!(await verifyMembership(call.conversationId, ws.userId!))) return;
 
           const members = await prisma.conversationMember.findMany({
             where: { conversationId: call.conversationId },
@@ -332,6 +381,9 @@ export function setupWebSocket(server: http.Server) {
         }
       } catch (err) {
         console.error("WebSocket message error:", err);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "error", message: "Operation failed" }));
+        }
       }
     });
 

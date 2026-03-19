@@ -62,6 +62,8 @@ model Invite {
   senderId    String
   phoneTarget String
   token       String       @unique
+  status      InviteStatus @default(PENDING)
+  expiresAt   DateTime
   createdAt   DateTime     @default(now())
 
   sender User @relation(fields: [senderId], references: [id])
