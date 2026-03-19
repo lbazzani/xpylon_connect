@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  phone            String   @unique
+  firstName        String
+  lastName         String
+  bio              String?
+  role             String?
+  companyId        String?
+  profileCompleted Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  company              Company?              @relation(fields: [companyId], references: [id])
+  connectionsSent      Connection[]          @relation("Requester")
+  connectionsReceived  Connection[]          @relation("Addressee")
+  invitesSent          Invite[]
+  messages             Message[]
+  conversationMembers  ConversationMember[]
+  fcmTokens            FcmToken[]
+}
+
+model Company {
+  id    String @id @default(uuid())
+  name  String
+  users User[]
+}
+
+model Connection {
+  id          String           @id @default(uuid())
+  requesterId String
+  addresseeId String
+  status      ConnectionStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+
+  requester User @relation("Requester", fields: [requesterId], references: [id])
+  addressee User @relation("Addressee", fields: [addresseeId], references: [id])
+
+  @@unique([requesterId, addresseeId])
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model Invite {
+  id          String       @id @default(uuid())
+  senderId    String
+  phoneTarget String
+  token       String       @unique
+  createdAt   DateTime     @default(now())
+
+  sender User @relation(fields: [senderId], references: [id])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+model Conversation {
+  id              String           @id @default(uuid())
+  type            ConversationType
+  name            String?
+  opportunityName String?
+  createdById     String
+  createdAt       DateTime         @default(now())
+
+  members  ConversationMember[]
+  messages Message[]
+}
+
+enum ConversationType {
+  DIRECT
+  OPPORTUNITY_GROUP
+}
+
+model ConversationMember {
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id             String    @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  createdAt      DateTime  @default(now())
+  readAt         DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation(fields: [senderId], references: [id])
+}
+
+model FcmToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}

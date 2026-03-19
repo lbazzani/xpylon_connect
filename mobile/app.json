@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Xpylon Connect",
+    "slug": "xpylon-connect",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "xpylonconnect",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#534AB7"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.xpylon.connect"
+    },
+    "android": {
+      "package": "com.xpylon.connect",
+      "adaptiveIcon": {
+        "backgroundColor": "#534AB7"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications"
+    ]
+  }
+}

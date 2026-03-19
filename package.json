@@ -1,0 +1,5 @@
+{
+  "name": "xpylon_connect",
+  "private": true,
+  "workspaces": ["mobile", "api", "shared"]
+}
