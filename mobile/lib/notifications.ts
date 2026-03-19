@@ -40,6 +40,7 @@ async function setupAndroidChannels() {
 }
 
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (Platform.OS === "web") return null;
   await setupAndroidChannels();
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
