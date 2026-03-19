@@ -29,7 +29,15 @@ B2B mobile app for business networking. Users connect via SMS invite, chat priva
 ## Conventions
 - **Language: ALL code, UI strings, file names, and folder names MUST be in English**
 - **Design system: `mobile/lib/theme.ts` is the single source of truth for ALL design tokens**
-- Primary color: `#F15A24` (Xpylon orange)
+- **Design quality: The app MUST look professional and enterprise-grade on BOTH web and mobile**
+  - Use Ionicons (from @expo/vector-icons) for ALL icons — NEVER use emoji
+  - Brand orange `#F15A24` used ONLY for primary action buttons — everything else uses neutral grays
+  - Active tab icons: filled variant in gray-900, inactive: outline in gray-400
+  - Header action buttons: outline style (border, gray icon), not filled orange
+  - Empty states: subtle icon + heading + description + outline CTA button
+  - Minimal color usage — professional neutral palette, no bright colors except for status indicators
+  - Tab bar must use explicit `name="directory/index"` and hide dynamic routes with `href: null`
+- Primary color: `#F15A24` (Xpylon orange) — use sparingly
 - Orientation: portrait only, smartphone only (no tablet)
 - Auth: OTP via Twilio Verify → JWT (access 15min + refresh 7d)
 - Realtime: WebSocket on same Express port (`/ws?token=JWT`)

@@ -32,11 +32,10 @@ export default function MessagesScreen() {
         <Text className="text-xl font-bold text-gray-900">Messages</Text>
         <TouchableOpacity
           onPress={() => {}}
-          className="w-9 h-9 rounded-full items-center justify-center"
-          style={{ backgroundColor: colors.primary }}
-          activeOpacity={0.7}
+          className="w-9 h-9 rounded-full items-center justify-center border border-gray-200"
+          activeOpacity={0.6}
         >
-          <Ionicons name="create-outline" size={18} color={colors.white} />
+          <Ionicons name="create-outline" size={18} color={colors.gray700} />
         </TouchableOpacity>
       </View>
 
@@ -89,12 +88,11 @@ export default function MessagesScreen() {
                 Start a conversation with one of your contacts to begin collaborating.
               </Text>
               <TouchableOpacity
-                className="mt-6 flex-row items-center px-5 py-2.5 rounded-full"
-                style={{ backgroundColor: colors.primary }}
-                activeOpacity={0.7}
+                className="mt-6 flex-row items-center px-5 py-2.5 rounded-full border border-gray-200"
+                activeOpacity={0.6}
               >
-                <Ionicons name="create-outline" size={16} color={colors.white} />
-                <Text className="text-white font-semibold text-sm ml-2">New conversation</Text>
+                <Ionicons name="add" size={16} color={colors.gray700} />
+                <Text className="text-gray-700 font-medium text-sm ml-1.5">New conversation</Text>
               </TouchableOpacity>
             </View>
           ) : null
