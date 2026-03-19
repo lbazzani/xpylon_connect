@@ -47,6 +47,8 @@ model Connection {
   addressee User @relation("Addressee", fields: [addresseeId], references: [id])
 
   @@unique([requesterId, addresseeId])
+  @@index([requesterId])
+  @@index([addresseeId])
 }
 
 enum ConnectionStatus {
@@ -98,6 +100,7 @@ model ConversationMember {
   user         User         @relation(fields: [userId], references: [id])
 
   @@id([conversationId, userId])
+  @@index([userId])
 }
 
 model Message {
@@ -116,6 +119,9 @@ model Message {
   replies      Message[]        @relation("MessageReplies")
   attachments  Attachment[]
   receipts     MessageReceipt[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
 }
 
 enum MessageType {
@@ -136,6 +142,7 @@ model MessageReceipt {
   user    User    @relation(fields: [userId], references: [id])
 
   @@unique([messageId, userId])
+  @@index([messageId])
 }
 
 model Attachment {
@@ -149,6 +156,8 @@ model Attachment {
 
   message       Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
   storageObject StorageObject @relation(fields: [objectId], references: [id])
+
+  @@index([messageId])
 }
 
 model StorageObject {
@@ -177,6 +186,8 @@ model Call {
   createdAt      DateTime   @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId])
 }
 
 enum CallType {
@@ -199,4 +210,6 @@ model FcmToken {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

@@ -12,7 +12,7 @@ import type { CallType } from "@xpylon/shared";
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import { useAuthStore } from "../../../store/auth";
 import { api } from "../../../lib/api";
-import type { Message, Conversation, WsServerEvent } from "@xpylon/shared";
+import type { Message, Conversation, WsServerEvent, Call } from "@xpylon/shared";
 
 const SENDER_COLORS = ["#F15A24", "#34C759", "#007AFF", "#AF52DE", "#FF9500", "#FF3B30", "#5856D6", "#00C7BE"];
 
@@ -29,7 +29,7 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [activeCall, setActiveCall] = useState<any>(null);
+  const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [callCallerName, setCallCallerName] = useState("");
   const [isCallIncoming, setIsCallIncoming] = useState(false);
   const [isCallConnected, setIsCallConnected] = useState(false);
@@ -166,28 +166,28 @@ export default function ChatScreen() {
   }
 
   function handleTyping() {
-    send({ type: "typing", conversationId: id! } as any);
+    send({ type: "typing", conversationId: id! });
   }
 
   function handleStopTyping() {
-    send({ type: "stop_typing", conversationId: id! } as any);
+    send({ type: "stop_typing", conversationId: id! });
   }
 
   function handleStartCall(callType: string) {
-    send({ type: "call_start", conversationId: id!, callType } as any);
+    send({ type: "call_start", conversationId: id!, callType });
   }
 
   function handleAcceptCall() {
-    if (activeCall) send({ type: "call_accept", callId: activeCall.id } as any);
+    if (activeCall) send({ type: "call_accept", callId: activeCall.id });
   }
 
   function handleDeclineCall() {
-    if (activeCall) send({ type: "call_decline", callId: activeCall.id } as any);
+    if (activeCall) send({ type: "call_decline", callId: activeCall.id });
     setActiveCall(null);
   }
 
   function handleEndCall() {
-    if (activeCall) send({ type: "call_end", callId: activeCall.id } as any);
+    if (activeCall) send({ type: "call_end", callId: activeCall.id });
     setActiveCall(null);
   }
 

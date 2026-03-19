@@ -1,7 +1,7 @@
 import { useAuthStore } from "../store/auth";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<Response> {
   const { accessToken } = useAuthStore.getState();
@@ -44,12 +44,20 @@ async function refreshAccessToken(): Promise<boolean> {
   }
 }
 
+async function handleResponse(response: Response) {
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Request failed" }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
 export const api = {
-  get: (path: string) => fetchWithAuth(path).then((r) => r.json()),
+  get: (path: string) => fetchWithAuth(path).then(handleResponse),
   post: (path: string, body?: unknown) =>
-    fetchWithAuth(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }).then((r) => r.json()),
+    fetchWithAuth(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }).then(handleResponse),
   patch: (path: string, body?: unknown) =>
-    fetchWithAuth(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }).then((r) => r.json()),
+    fetchWithAuth(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }).then(handleResponse),
   delete: (path: string, body?: unknown) =>
-    fetchWithAuth(path, { method: "DELETE", body: body ? JSON.stringify(body) : undefined }).then((r) => r.json()),
+    fetchWithAuth(path, { method: "DELETE", body: body ? JSON.stringify(body) : undefined }).then(handleResponse),
 };

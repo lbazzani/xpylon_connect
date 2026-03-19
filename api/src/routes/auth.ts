@@ -6,11 +6,32 @@ import { authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
+// Simple in-memory rate limiter
+const otpAttempts = new Map<string, { count: number; resetAt: number }>();
+const OTP_RATE_LIMIT = 5; // max attempts
+const OTP_WINDOW = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const entry = otpAttempts.get(key);
+  if (!entry || now > entry.resetAt) {
+    otpAttempts.set(key, { count: 1, resetAt: now + OTP_WINDOW });
+    return true;
+  }
+  if (entry.count >= OTP_RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 // POST /auth/request-otp
 router.post("/request-otp", async (req, res) => {
   try {
     const { phone } = req.body;
     if (!phone) { res.status(400).json({ error: "phone is required" }); return; }
+    if (!checkRateLimit(phone)) {
+      res.status(429).json({ error: "Too many attempts, try again later" });
+      return;
+    }
     // TODO: Twilio Verify — send OTP
     // const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     // await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID!).verifications.create({ to: phone, channel: "sms" });
@@ -25,6 +46,10 @@ router.post("/verify-otp", async (req, res) => {
   try {
     const { phone, code } = req.body;
     if (!phone || !code) { res.status(400).json({ error: "phone and code are required" }); return; }
+    if (!checkRateLimit(phone)) {
+      res.status(429).json({ error: "Too many attempts, try again later" });
+      return;
+    }
 
     // TODO: Twilio Verify — check OTP
     // const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);

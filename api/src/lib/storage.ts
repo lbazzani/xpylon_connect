@@ -72,7 +72,11 @@ export async function uploadFile(
 }
 
 export async function getFilePath(bucket: string, key: string): Promise<string> {
-  const filePath = path.join(STORAGE_ROOT, bucket, key);
+  const filePath = path.resolve(STORAGE_ROOT, bucket, key);
+  // Prevent path traversal
+  if (!filePath.startsWith(STORAGE_ROOT)) {
+    throw new Error("Invalid path");
+  }
   try {
     await fs.access(filePath);
     return filePath;
