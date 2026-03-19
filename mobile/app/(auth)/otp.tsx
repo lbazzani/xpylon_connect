@@ -33,8 +33,9 @@ export default function OtpScreen() {
       } else {
         router.replace("/(app)/messages");
       }
-    } catch {
-      setError("Invalid code. Please try again.");
+    } catch (err) {
+      console.error("OTP verify error:", err);
+      setError(err instanceof Error ? err.message : "Invalid code. Please try again.");
     } finally {
       setLoading(false);
     }

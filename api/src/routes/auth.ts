@@ -55,6 +55,7 @@ router.post("/request-otp", async (req, res) => {
 router.post("/verify-otp", async (req, res) => {
   try {
     const { phone, code } = req.body;
+    console.log("OTP verify request:", { phone, code: code?.length + " digits" });
     if (!phone || !code) { res.status(400).json({ error: "phone and code are required" }); return; }
     if (!checkRateLimit(phone)) {
       res.status(429).json({ error: "Too many attempts, try again later" });
@@ -65,6 +66,7 @@ router.post("/verify-otp", async (req, res) => {
       .services(VERIFY_SERVICE_SID)
       .verificationChecks.create({ to: phone, code });
 
+    console.log("OTP check result:", { status: check.status, to: check.to, valid: check.valid });
     if (check.status !== "approved") {
       res.status(401).json({ error: "Invalid OTP" });
       return;
