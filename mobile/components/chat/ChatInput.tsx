@@ -1,37 +1,152 @@
-import { View, TextInput, TouchableOpacity, Text } from "react-native";
-import { useState } from "react";
+import { View, TextInput, TouchableOpacity, Text, Image } from "react-native";
+import { useState, useRef, useEffect } from "react";
+import * as ImagePicker from "expo-image-picker";
+import type { Message } from "@xpylon/shared";
 
 interface ChatInputProps {
-  onSend: (content: string) => void;
+  onSend: (content: string, replyToId?: string) => void;
+  onSendAttachments?: (uris: string[], caption?: string) => void;
+  onTyping?: () => void;
+  onStopTyping?: () => void;
+  replyingTo?: Message | null;
+  onCancelReply?: () => void;
 }
 
-export function ChatInput({ onSend }: ChatInputProps) {
+export function ChatInput({ onSend, onSendAttachments, onTyping, onStopTyping, replyingTo, onCancelReply }: ChatInputProps) {
   const [text, setText] = useState("");
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const inputRef = useRef<TextInput>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
 
-  function handleSend() {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    onSend(trimmed);
-    setText("");
+  useEffect(() => {
+    if (replyingTo) {
+      inputRef.current?.focus();
+    }
+  }, [replyingTo]);
+
+  function handleTextChange(value: string) {
+    setText(value);
+    if (value.trim() && !isTypingRef.current) {
+      isTypingRef.current = true;
+      onTyping?.();
+    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      onStopTyping?.();
+    }, 2000);
   }
 
+  function handleSend() {
+    if (selectedImages.length > 0 && onSendAttachments) {
+      onSendAttachments(selectedImages, text.trim() || undefined);
+      setSelectedImages([]);
+      setText("");
+      onCancelReply?.();
+      return;
+    }
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    onSend(trimmed, replyingTo?.id);
+    setText("");
+    onCancelReply?.();
+    isTypingRef.current = false;
+    onStopTyping?.();
+  }
+
+  async function handlePickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+    if (!result.canceled) {
+      setSelectedImages((prev) => [...prev, ...result.assets.map((a) => a.uri)]);
+    }
+  }
+
+  async function handleCamera() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") return;
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    if (!result.canceled) {
+      setSelectedImages((prev) => [...prev, result.assets[0].uri]);
+    }
+  }
+
+  function removeImage(uri: string) {
+    setSelectedImages((prev) => prev.filter((u) => u !== uri));
+  }
+
+  const canSend = text.trim() || selectedImages.length > 0;
+
   return (
-    <View className="flex-row items-end px-4 py-2 bg-white border-t border-gray-100">
-      <TextInput
-        className="flex-1 bg-background-secondary rounded-2xl px-4 py-3 text-base max-h-24"
-        placeholder="Scrivi un messaggio..."
-        placeholderTextColor="#9CA3AF"
-        value={text}
-        onChangeText={setText}
-        multiline
-      />
-      <TouchableOpacity
-        onPress={handleSend}
-        className="ml-2 w-10 h-10 bg-primary rounded-full items-center justify-center"
-        disabled={!text.trim()}
-      >
-        <Text className="text-white text-lg">{"\u2191"}</Text>
-      </TouchableOpacity>
+    <View className="bg-white border-t border-gray-100">
+      {/* Reply preview bar */}
+      {replyingTo && (
+        <View className="flex-row items-center px-4 py-2 bg-gray-50 border-b border-gray-100">
+          <View className="flex-1 border-l-4 border-primary pl-3">
+            <Text className="text-xs font-bold text-primary">{replyingTo.sender?.firstName || ""}</Text>
+            <Text className="text-xs text-gray-500 mt-0.5" numberOfLines={1}>
+              {replyingTo.content || "📎 Attachment"}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={onCancelReply} className="ml-3 p-1">
+            <Text className="text-gray-400 text-lg font-bold">✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Image previews */}
+      {selectedImages.length > 0 && (
+        <View className="flex-row px-4 pt-2 gap-2 flex-wrap">
+          {selectedImages.map((uri) => (
+            <View key={uri} className="relative mb-1">
+              <Image source={{ uri }} className="w-16 h-16 rounded-xl" />
+              <TouchableOpacity
+                onPress={() => removeImage(uri)}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-700 rounded-full items-center justify-center"
+              >
+                <Text className="text-white text-xs font-bold">✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Input bar */}
+      <View className="flex-row items-end px-2 py-2">
+        {/* Attachment buttons */}
+        <TouchableOpacity onPress={handlePickImage} className="w-10 h-10 items-center justify-center">
+          <Text className="text-xl text-gray-500">📎</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleCamera} className="w-10 h-10 items-center justify-center">
+          <Text className="text-xl text-gray-500">📷</Text>
+        </TouchableOpacity>
+
+        {/* Text input */}
+        <View className="flex-1 bg-gray-50 rounded-3xl border border-gray-200 mx-1">
+          <TextInput
+            ref={inputRef}
+            className="px-4 py-2.5 text-[15px] text-gray-900 max-h-28"
+            placeholder="Type a message..."
+            placeholderTextColor="#9CA3AF"
+            value={text}
+            onChangeText={handleTextChange}
+            multiline
+          />
+        </View>
+
+        {/* Send button */}
+        <TouchableOpacity
+          onPress={handleSend}
+          className={`w-11 h-11 rounded-full items-center justify-center ${canSend ? "bg-primary" : "bg-gray-200"}`}
+          disabled={!canSend}
+        >
+          <Text className={`text-lg ${canSend ? "text-white" : "text-gray-400"}`}>▶</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

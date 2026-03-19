@@ -26,10 +26,10 @@ export function PendingRequestCard({ user, connectionId, onAccept, onDecline }: 
       </View>
       <View className="flex-row gap-3">
         <View className="flex-1">
-          <Button title="Rifiuta" variant="secondary" onPress={() => onDecline(connectionId)} />
+          <Button title="Decline" variant="secondary" onPress={() => onDecline(connectionId)} />
         </View>
         <View className="flex-1">
-          <Button title="Accetta" onPress={() => onAccept(connectionId)} />
+          <Button title="Accept" onPress={() => onAccept(connectionId)} />
         </View>
       </View>
     </View>

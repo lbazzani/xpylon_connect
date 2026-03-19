@@ -8,6 +8,7 @@ import { usersRouter } from "./routes/users";
 import { connectionsRouter } from "./routes/connections";
 import { invitesRouter } from "./routes/invites";
 import { conversationsRouter } from "./routes/conversations";
+import { storageRouter } from "./routes/storage";
 import { setupWebSocket } from "./ws";
 
 const app = express();
@@ -22,6 +23,8 @@ app.use("/users", usersRouter);
 app.use("/connections", connectionsRouter);
 app.use("/invites", invitesRouter);
 app.use("/conversations", conversationsRouter);
+app.use("/storage", storageRouter);
+app.use("/files", express.static("uploads"));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

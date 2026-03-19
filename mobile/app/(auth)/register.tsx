@@ -40,20 +40,20 @@ export default function RegisterScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView className="flex-1 px-6" contentContainerClassName="justify-center py-12">
-          <Text className="text-3xl font-bold text-gray-900 mb-2">Crea il tuo account</Text>
+          <Text className="text-3xl font-bold text-gray-900 mb-2">Create your account</Text>
           <Text className="text-base text-gray-500 mb-8">
-            Inserisci i tuoi dati per iniziare
+            Enter your details to get started
           </Text>
-          <Input label="Nome" placeholder="Mario" value={firstName} onChangeText={setFirstName} />
-          <Input label="Cognome" placeholder="Rossi" value={lastName} onChangeText={setLastName} />
+          <Input label="First name" placeholder="John" value={firstName} onChangeText={setFirstName} />
+          <Input label="Last name" placeholder="Doe" value={lastName} onChangeText={setLastName} />
           <Input
-            label="Azienda"
-            placeholder="Nome della tua azienda"
+            label="Company"
+            placeholder="Your company name"
             value={companyName}
             onChangeText={setCompanyName}
           />
           <Button
-            title="Continua"
+            title="Continue"
             onPress={handleSubmit}
             loading={loading}
             disabled={!firstName.trim() || !lastName.trim() || !companyName.trim()}

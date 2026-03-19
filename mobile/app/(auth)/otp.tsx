@@ -17,7 +17,7 @@ export default function OtpScreen() {
 
   async function handleVerify() {
     if (code.length < 4) {
-      setError("Inserisci il codice completo");
+      setError("Enter the complete code");
       return;
     }
     setLoading(true);
@@ -28,10 +28,10 @@ export default function OtpScreen() {
       if (data.isNewUser) {
         router.replace("/(auth)/register");
       } else {
-        router.replace("/(app)/messaggi");
+        router.replace("/(app)/messages");
       }
     } catch {
-      setError("Codice non valido");
+      setError("Invalid code");
     } finally {
       setLoading(false);
     }
@@ -43,12 +43,12 @@ export default function OtpScreen() {
         className="flex-1 px-6 justify-center"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Text className="text-3xl font-bold text-gray-900 mb-2">Verifica</Text>
+        <Text className="text-3xl font-bold text-gray-900 mb-2">Verify</Text>
         <Text className="text-base text-gray-500 mb-8">
-          Inserisci il codice inviato a {phone}
+          Enter the code sent to {phone}
         </Text>
         <Input
-          label="Codice OTP"
+          label="OTP Code"
           placeholder="123456"
           keyboardType="number-pad"
           value={code}
@@ -57,7 +57,7 @@ export default function OtpScreen() {
           maxLength={6}
           autoFocus
         />
-        <Button title="Verifica" onPress={handleVerify} loading={loading} />
+        <Button title="Verify" onPress={handleVerify} loading={loading} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

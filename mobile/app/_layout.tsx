@@ -1,5 +1,6 @@
 import "../global.css";
 import { Slot, useRouter, useSegments } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { View, ActivityIndicator } from "react-native";
@@ -17,17 +18,22 @@ export default function RootLayout() {
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/(auth)/phone");
     } else if (isAuthenticated && inAuthGroup) {
-      router.replace("/(app)/messaggi");
+      router.replace("/(app)/messages");
     }
   }, [isAuthenticated, isLoading, segments]);
 
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#534AB7" />
+        <ActivityIndicator size="large" color="#F15A24" />
       </View>
     );
   }
 
-  return <Slot />;
+  return (
+    <>
+      <StatusBar style="dark" />
+      <Slot />
+    </>
+  );
 }

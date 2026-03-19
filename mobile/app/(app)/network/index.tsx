@@ -49,7 +49,7 @@ export default function ReteScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
       <View className="flex-row items-center justify-between px-4 py-3">
-        <Text className="text-2xl font-bold text-gray-900">Rete</Text>
+        <Text className="text-2xl font-bold text-gray-900">Network</Text>
         <TouchableOpacity
           onPress={() => {/* TODO: open invite sheet */}}
           className="w-10 h-10 bg-primary rounded-full items-center justify-center"
@@ -67,7 +67,7 @@ export default function ReteScreen() {
           pending.length > 0 ? (
             <View className="mb-4">
               <Text className="text-sm font-semibold text-gray-500 uppercase px-4 mb-2">
-                Richieste in arrivo
+                Pending requests
               </Text>
               {pending.map((conn) => (
                 <PendingRequestCard
@@ -79,12 +79,12 @@ export default function ReteScreen() {
                 />
               ))}
               <Text className="text-sm font-semibold text-gray-500 uppercase px-4 mt-4 mb-2">
-                I tuoi contatti
+                Your contacts
               </Text>
             </View>
           ) : (
             <Text className="text-sm font-semibold text-gray-500 uppercase px-4 mb-2">
-              I tuoi contatti
+              Your contacts
             </Text>
           )
         }
@@ -94,7 +94,7 @@ export default function ReteScreen() {
         ListEmptyComponent={
           !loading ? (
             <View className="items-center py-20">
-              <Text className="text-gray-400 text-base">Nessun contatto</Text>
+              <Text className="text-gray-400 text-base">No contacts</Text>
             </View>
           ) : null
         }

@@ -12,11 +12,11 @@ export function ConversationItem({ conversation, currentUserId, onPress }: Conve
   const isGroup = conversation.type === "OPPORTUNITY_GROUP";
   const otherMember = conversation.members?.find((m) => m.userId !== currentUserId)?.user;
   const displayName = isGroup
-    ? conversation.name || "Gruppo"
+    ? conversation.name || "Group"
     : otherMember
     ? `${otherMember.firstName} ${otherMember.lastName}`
-    : "Utente";
-  const preview = conversation.lastMessage?.content || "Nessun messaggio";
+    : "User";
+  const preview = conversation.lastMessage?.content || "No messages";
   const time = conversation.lastMessage
     ? new Date(conversation.lastMessage.createdAt).toLocaleTimeString([], {
         hour: "2-digit",

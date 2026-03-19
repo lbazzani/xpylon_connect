@@ -22,7 +22,7 @@ export default function ProfileSetupScreen() {
         bio: bio.trim() || undefined,
       });
       setUser(user);
-      router.replace("/(app)/messaggi");
+      router.replace("/(app)/messages");
     } catch {
     } finally {
       setLoading(false);
@@ -30,7 +30,7 @@ export default function ProfileSetupScreen() {
   }
 
   function handleSkip() {
-    router.replace("/(app)/messaggi");
+    router.replace("/(app)/messages");
   }
 
   return (
@@ -40,20 +40,20 @@ export default function ProfileSetupScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView className="flex-1 px-6" contentContainerClassName="justify-center py-12">
-          <Text className="text-3xl font-bold text-gray-900 mb-2">Completa il profilo</Text>
-          <Text className="text-base text-gray-500 mb-8">Puoi farlo anche dopo</Text>
-          <Input label="Ruolo / Posizione" placeholder="es. CEO, Sales Manager..." value={role} onChangeText={setRole} />
+          <Text className="text-3xl font-bold text-gray-900 mb-2">Complete your profile</Text>
+          <Text className="text-base text-gray-500 mb-8">You can do this later</Text>
+          <Input label="Role / Position" placeholder="e.g. CEO, Sales Manager..." value={role} onChangeText={setRole} />
           <Input
             label="Bio"
-            placeholder="Raccontaci di te in poche parole..."
+            placeholder="Tell us about yourself..."
             value={bio}
             onChangeText={setBio}
             multiline
             maxLength={160}
           />
-          <Button title="Salva e continua" onPress={handleSave} loading={loading} />
+          <Button title="Save and continue" onPress={handleSave} loading={loading} />
           <TouchableOpacity onPress={handleSkip} className="mt-4 items-center">
-            <Text className="text-primary font-medium text-base">Salta per ora</Text>
+            <Text className="text-primary font-medium text-base">Skip for now</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

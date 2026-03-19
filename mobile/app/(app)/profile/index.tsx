@@ -7,19 +7,19 @@ export default function ProfiloScreen() {
   const { user, logout } = useAuth();
 
   function handleLogout() {
-    Alert.alert("Esci", "Vuoi davvero uscire?", [
-      { text: "Annulla", style: "cancel" },
-      { text: "Esci", style: "destructive", onPress: logout },
+    Alert.alert("Sign out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Sign out", style: "destructive", onPress: logout },
     ]);
   }
 
   if (!user) return null;
 
   const menuItems = [
-    { label: "Modifica profilo", color: "text-primary", icon: "\u270F\uFE0F" },
-    { label: "La mia azienda", color: "text-blue-500", icon: "\uD83C\uDFE2" },
-    { label: "Notifiche", color: "text-accent-green", icon: "\uD83D\uDD14" },
-    { label: "Privacy e sicurezza", color: "text-gray-500", icon: "\uD83D\uDD12" },
+    { label: "Edit profile", color: "text-primary", icon: "\u270F\uFE0F" },
+    { label: "My company", color: "text-blue-500", icon: "\uD83C\uDFE2" },
+    { label: "Notifications", color: "text-accent-green", icon: "\uD83D\uDD14" },
+    { label: "Privacy & security", color: "text-gray-500", icon: "\uD83D\uDD12" },
   ];
 
   return (
@@ -43,7 +43,7 @@ export default function ProfiloScreen() {
                 user.profileCompleted ? "text-green-700" : "text-amber-700"
               }`}
             >
-              {user.profileCompleted ? "Profilo completo" : "Completa profilo"}
+              {user.profileCompleted ? "Profile complete" : "Complete profile"}
             </Text>
           </View>
         </View>
@@ -64,7 +64,7 @@ export default function ProfiloScreen() {
             className="flex-row items-center py-4"
           >
             <Text className="text-lg mr-3">{"\uD83D\uDEAA"}</Text>
-            <Text className="text-base font-medium text-accent-red">Esci</Text>
+            <Text className="text-base font-medium text-accent-red">Sign out</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

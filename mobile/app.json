@@ -9,22 +9,35 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#534AB7"
+      "image": "./assets/splash-icon.png",
+      "backgroundColor": "#444444",
+      "resizeMode": "contain"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.xpylon.connect"
+      "bundleIdentifier": "com.xpylon.connect",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Xpylon Connect uses the camera to take photos to send in chat",
+        "NSPhotoLibraryUsageDescription": "Xpylon Connect accesses the gallery to send photos in chat"
+      }
     },
     "android": {
       "package": "com.xpylon.connect",
       "adaptiveIcon": {
-        "backgroundColor": "#534AB7"
-      }
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#444444"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES"
+      ]
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-image-picker"
     ]
   }
 }

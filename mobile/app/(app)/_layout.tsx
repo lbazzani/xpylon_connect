@@ -6,7 +6,7 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#534AB7",
+        tabBarActiveTintColor: "#F15A24",
         tabBarInactiveTintColor: "#9CA3AF",
         tabBarStyle: {
           borderTopColor: "#F3F4F6",
@@ -19,23 +19,23 @@ export default function AppLayout() {
       }}
     >
       <Tabs.Screen
-        name="messaggi"
+        name="messages"
         options={{
-          title: "Messaggi",
+          title: "Messages",
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>{"\uD83D\uDCAC"}</Text>,
         }}
       />
       <Tabs.Screen
-        name="rete"
+        name="network"
         options={{
-          title: "Rete",
+          title: "Network",
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>{"\uD83D\uDC65"}</Text>,
         }}
       />
       <Tabs.Screen
-        name="profilo"
+        name="profile"
         options={{
-          title: "Profilo",
+          title: "Profile",
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>{"\uD83D\uDC64"}</Text>,
         }}
       />

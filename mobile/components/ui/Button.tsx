@@ -28,7 +28,7 @@ export function Button({ title, variant = "primary", loading, disabled, classNam
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "secondary" ? "#534AB7" : "#fff"} />
+        <ActivityIndicator color={variant === "secondary" ? "#F15A24" : "#fff"} />
       ) : (
         <Text className={textVariants[variant]}>{title}</Text>
       )}

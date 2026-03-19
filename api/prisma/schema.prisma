@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id               String   @id @default(uuid())
-  phone            String   @unique
+  id               String    @id @default(uuid())
+  phone            String    @unique
   firstName        String
   lastName         String
   bio              String?
   role             String?
   companyId        String?
-  profileCompleted Boolean  @default(false)
-  createdAt        DateTime @default(now())
+  profileCompleted Boolean   @default(false)
+  lastSeenAt       DateTime?
+  isOnline         Boolean   @default(false)
+  createdAt        DateTime  @default(now())
 
   company              Company?              @relation(fields: [companyId], references: [id])
   connectionsSent      Connection[]          @relation("Requester")
@@ -25,6 +27,7 @@ model User {
   messages             Message[]
   conversationMembers  ConversationMember[]
   fcmTokens            FcmToken[]
+  messageReceipts      MessageReceipt[]
 }
 
 model Company {
@@ -78,6 +81,7 @@ model Conversation {
 
   members  ConversationMember[]
   messages Message[]
+  calls    Call[]
 }
 
 enum ConversationType {
@@ -97,15 +101,95 @@ model ConversationMember {
 }
 
 model Message {
-  id             String    @id @default(uuid())
+  id             String       @id @default(uuid())
   conversationId String
   senderId       String
-  content        String
-  createdAt      DateTime  @default(now())
-  readAt         DateTime?
+  content        String?
+  type           MessageType  @default(TEXT)
+  replyToId      String?
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  conversation Conversation     @relation(fields: [conversationId], references: [id])
+  sender       User             @relation(fields: [senderId], references: [id])
+  replyTo      Message?         @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies      Message[]        @relation("MessageReplies")
+  attachments  Attachment[]
+  receipts     MessageReceipt[]
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+model MessageReceipt {
+  id          String    @id @default(uuid())
+  messageId   String
+  userId      String
+  deliveredAt DateTime  @default(now())
+  readAt      DateTime?
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([messageId, userId])
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  messageId String
+  objectId  String
+  fileName  String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+
+  message       Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  storageObject StorageObject @relation(fields: [objectId], references: [id])
+}
+
+model StorageObject {
+  id           String   @id @default(uuid())
+  bucket       String   @default("attachments")
+  key          String   @unique
+  mimeType     String
+  size         Int
+  originalName String
+  // Per le immagini: varianti generate (thumbnail, medium, large)
+  variants     Json?    // { "thumbnail": "key", "medium": "key", "large": "key" }
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  attachments Attachment[]
+}
+
+model Call {
+  id             String    @id @default(uuid())
+  conversationId String
+  callerId       String
+  type           CallType
+  status         CallStatus @default(RINGING)
+  startedAt      DateTime?
+  endedAt        DateTime?
+  createdAt      DateTime   @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
-  sender       User         @relation(fields: [senderId], references: [id])
+}
+
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  RINGING
+  ONGOING
+  ENDED
+  MISSED
+  DECLINED
 }
 
 model FcmToken {

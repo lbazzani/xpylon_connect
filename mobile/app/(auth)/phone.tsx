@@ -14,7 +14,7 @@ export default function PhoneScreen() {
 
   async function handleSubmit() {
     if (!phone.trim()) {
-      setError("Inserisci il numero di telefono");
+      setError("Enter your phone number");
       return;
     }
     setLoading(true);
@@ -23,7 +23,7 @@ export default function PhoneScreen() {
       await api.post("/auth/request-otp", { phone: phone.trim() });
       router.push({ pathname: "/(auth)/otp", params: { phone: phone.trim() } });
     } catch {
-      setError("Errore nell'invio del codice");
+      setError("Error sending code");
     } finally {
       setLoading(false);
     }
@@ -35,12 +35,12 @@ export default function PhoneScreen() {
         className="flex-1 px-6 justify-center"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Text className="text-3xl font-bold text-gray-900 mb-2">Benvenuto</Text>
+        <Text className="text-3xl font-bold text-gray-900 mb-2">Welcome</Text>
         <Text className="text-base text-gray-500 mb-8">
-          Inserisci il tuo numero di telefono per accedere
+          Enter your phone number to sign in
         </Text>
         <Input
-          label="Numero di telefono"
+          label="Phone number"
           placeholder="+39 333 1234567"
           keyboardType="phone-pad"
           value={phone}
@@ -48,7 +48,7 @@ export default function PhoneScreen() {
           error={error}
           autoFocus
         />
-        <Button title="Continua" onPress={handleSubmit} loading={loading} />
+        <Button title="Continue" onPress={handleSubmit} loading={loading} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

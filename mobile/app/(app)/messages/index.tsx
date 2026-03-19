@@ -19,15 +19,15 @@ export default function MessaggiScreen() {
     filter === "all" ? conversations : conversations.filter((c) => c.type === filter);
 
   const filters: { key: Filter; label: string }[] = [
-    { key: "all", label: "Tutti" },
-    { key: "DIRECT", label: "Diretti" },
-    { key: "OPPORTUNITY_GROUP", label: "Gruppi" },
+    { key: "all", label: "All" },
+    { key: "DIRECT", label: "Direct" },
+    { key: "OPPORTUNITY_GROUP", label: "Groups" },
   ];
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
       <View className="flex-row items-center justify-between px-4 py-3">
-        <Text className="text-2xl font-bold text-gray-900">Messaggi</Text>
+        <Text className="text-2xl font-bold text-gray-900">Messages</Text>
         <TouchableOpacity
           onPress={() => {/* TODO: open new conversation sheet */}}
           className="w-10 h-10 bg-primary rounded-full items-center justify-center"
@@ -59,14 +59,14 @@ export default function MessaggiScreen() {
           <ConversationItem
             conversation={item}
             currentUserId={user?.id || ""}
-            onPress={() => router.push(`/(app)/messaggi/${item.id}`)}
+            onPress={() => router.push(`/(app)/messages/${item.id}`)}
           />
         )}
         onRefresh={refetch}
         refreshing={isLoading}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-gray-400 text-base">Nessuna conversazione</Text>
+            <Text className="text-gray-400 text-base">No conversations</Text>
           </View>
         }
       />

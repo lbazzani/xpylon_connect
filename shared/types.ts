@@ -17,6 +17,26 @@ export enum ConversationType {
   OPPORTUNITY_GROUP = "OPPORTUNITY_GROUP",
 }
 
+export enum MessageType {
+  TEXT = "TEXT",
+  IMAGE = "IMAGE",
+  FILE = "FILE",
+  SYSTEM = "SYSTEM",
+}
+
+export enum CallType {
+  VOICE = "VOICE",
+  VIDEO = "VIDEO",
+}
+
+export enum CallStatus {
+  RINGING = "RINGING",
+  ONGOING = "ONGOING",
+  ENDED = "ENDED",
+  MISSED = "MISSED",
+  DECLINED = "DECLINED",
+}
+
 // ── Models ──
 
 export interface User {
@@ -29,6 +49,8 @@ export interface User {
   bio?: string;
   role?: string;
   profileCompleted: boolean;
+  lastSeenAt?: string;
+  isOnline?: boolean;
   createdAt: string;
 }
 
@@ -80,10 +102,63 @@ export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  content: string;
+  content?: string;
+  type: MessageType;
+  replyToId?: string;
+  replyTo?: Message;
+  deletedAt?: string;
   createdAt: string;
-  readAt?: string;
   sender?: User;
+  attachments?: Attachment[];
+  receipts?: MessageReceipt[];
+}
+
+export interface MessageReceipt {
+  id: string;
+  messageId: string;
+  userId: string;
+  deliveredAt: string;
+  readAt?: string;
+  user?: User;
+}
+
+export interface Attachment {
+  id: string;
+  messageId: string;
+  objectId: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+  storageObject?: StorageObject;
+}
+
+export interface StorageObject {
+  id: string;
+  bucket: string;
+  key: string;
+  mimeType: string;
+  size: number;
+  originalName: string;
+  variants?: ImageVariants;
+  createdAt: string;
+}
+
+export interface ImageVariants {
+  thumbnail?: string;
+  medium?: string;
+  large?: string;
+}
+
+export interface Call {
+  id: string;
+  conversationId: string;
+  callerId: string;
+  type: CallType;
+  status: CallStatus;
+  startedAt?: string;
+  endedAt?: string;
+  createdAt: string;
 }
 
 export interface FcmToken {
@@ -162,7 +237,13 @@ export interface FcmTokenBody {
 
 export type WsServerEvent =
   | { type: "new_message"; conversationId: string; message: Message }
-  | { type: "message_read"; conversationId: string; messageId: string }
+  | { type: "message_delivered"; conversationId: string; messageId: string; userId: string; deliveredAt: string }
+  | { type: "message_read"; conversationId: string; messageId: string; userId: string; readAt: string }
+  | { type: "message_deleted"; conversationId: string; messageId: string }
+  | { type: "typing"; conversationId: string; userId: string; firstName: string }
+  | { type: "stop_typing"; conversationId: string; userId: string }
+  | { type: "user_online"; userId: string }
+  | { type: "user_offline"; userId: string; lastSeenAt: string }
   | {
       type: "connection_request";
       from: { id: string; firstName: string; lastName: string; company?: Company };
@@ -170,8 +251,25 @@ export type WsServerEvent =
   | {
       type: "connection_accepted";
       by: { id: string; firstName: string; lastName: string };
-    };
+    }
+  | { type: "call_incoming"; call: Call; callerName: string }
+  | { type: "call_accepted"; callId: string; userId: string }
+  | { type: "call_ended"; callId: string; reason: string }
+  | { type: "call_declined"; callId: string; userId: string }
+  | { type: "webrtc_offer"; callId: string; sdp: string; userId: string }
+  | { type: "webrtc_answer"; callId: string; sdp: string; userId: string }
+  | { type: "webrtc_ice_candidate"; callId: string; candidate: string; userId: string };
 
 export type WsClientEvent =
-  | { type: "send_message"; conversationId: string; content: string }
-  | { type: "read_message"; conversationId: string; messageId: string };
+  | { type: "send_message"; conversationId: string; content?: string; replyToId?: string; attachmentIds?: string[] }
+  | { type: "read_message"; conversationId: string; messageId: string }
+  | { type: "delete_message"; conversationId: string; messageId: string }
+  | { type: "typing"; conversationId: string }
+  | { type: "stop_typing"; conversationId: string }
+  | { type: "call_start"; conversationId: string; callType: CallType }
+  | { type: "call_accept"; callId: string }
+  | { type: "call_decline"; callId: string }
+  | { type: "call_end"; callId: string }
+  | { type: "webrtc_offer"; callId: string; sdp: string }
+  | { type: "webrtc_answer"; callId: string; sdp: string }
+  | { type: "webrtc_ice_candidate"; callId: string; candidate: string };
