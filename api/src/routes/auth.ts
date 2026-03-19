@@ -1,15 +1,22 @@
 import { Router } from "express";
+import twilio from "twilio";
 import prisma from "../lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/jwt";
 import { authMiddleware } from "../middleware/auth";
-// import twilio from "twilio"; // uncomment when Twilio credentials are set
 
 const router = Router();
 
+// Twilio Verify client
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
+const VERIFY_SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID!;
+
 // Simple in-memory rate limiter
 const otpAttempts = new Map<string, { count: number; resetAt: number }>();
-const OTP_RATE_LIMIT = 5; // max attempts
-const OTP_WINDOW = 15 * 60 * 1000; // 15 minutes
+const OTP_RATE_LIMIT = 5;
+const OTP_WINDOW = 15 * 60 * 1000;
 
 function checkRateLimit(key: string): boolean {
   const now = Date.now();
@@ -32,11 +39,14 @@ router.post("/request-otp", async (req, res) => {
       res.status(429).json({ error: "Too many attempts, try again later" });
       return;
     }
-    // TODO: Twilio Verify — send OTP
-    // const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    // await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID!).verifications.create({ to: phone, channel: "sms" });
+
+    await twilioClient.verify.v2
+      .services(VERIFY_SERVICE_SID)
+      .verifications.create({ to: phone, channel: "sms" });
+
     res.json({ success: true });
   } catch (err) {
+    console.error("OTP send error:", err);
     res.status(500).json({ error: "Failed to send OTP" });
   }
 });
@@ -51,12 +61,15 @@ router.post("/verify-otp", async (req, res) => {
       return;
     }
 
-    // TODO: Twilio Verify — check OTP
-    // const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    // const check = await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID!).verificationChecks.create({ to: phone, code });
-    // if (check.status !== "approved") { res.status(401).json({ error: "Invalid OTP" }); return; }
+    const check = await twilioClient.verify.v2
+      .services(VERIFY_SERVICE_SID)
+      .verificationChecks.create({ to: phone, code });
 
-    // For development: accept any code
+    if (check.status !== "approved") {
+      res.status(401).json({ error: "Invalid OTP" });
+      return;
+    }
+
     let user = await prisma.user.findUnique({ where: { phone } });
     const isNewUser = !user;
 
@@ -70,6 +83,7 @@ router.post("/verify-otp", async (req, res) => {
     const refreshToken = signRefreshToken(user.id);
     res.json({ accessToken, refreshToken, isNewUser });
   } catch (err) {
+    console.error("OTP verify error:", err);
     res.status(500).json({ error: "OTP verification failed" });
   }
 });
