@@ -15,16 +15,28 @@ export default function PhoneScreen() {
   const [error, setError] = useState("");
   const router = useRouter();
 
+  function normalizePhone(input: string): string {
+    const digits = input.replace(/[^+\d]/g, "");
+    if (digits.startsWith("+")) return digits;
+    // Default to Italian prefix if no country code
+    return `+39${digits}`;
+  }
+
   async function handleSubmit() {
     if (!phone.trim()) {
       setError("Enter your phone number");
       return;
     }
+    const normalized = normalizePhone(phone.trim());
+    if (normalized.length < 10) {
+      setError("Phone number is too short");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      await api.post("/auth/request-otp", { phone: phone.trim() });
-      router.push({ pathname: "/(auth)/otp", params: { phone: phone.trim() } });
+      await api.post("/auth/request-otp", { phone: normalized });
+      router.push({ pathname: "/(auth)/otp", params: { phone: normalized } });
     } catch {
       setError("Error sending code");
     } finally {
@@ -60,7 +72,7 @@ export default function PhoneScreen() {
 
             <Input
               label="Phone number"
-              placeholder="+1 (555) 123-4567"
+              placeholder="+39 348 123 4567"
               keyboardType="phone-pad"
               value={phone}
               onChangeText={(text) => {
