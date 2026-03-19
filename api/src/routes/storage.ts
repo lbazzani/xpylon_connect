@@ -36,7 +36,7 @@ router.post("/upload", authMiddleware, upload.array("files", 10), async (req: Re
 router.get("/:bucket/*", async (req: Request, res: Response) => {
   try {
     const bucket = req.params.bucket;
-    const key = req.params[0];
+    const key = req.params[0] as string;
     // Optional: request specific variant via query param
     const variant = req.query.variant as string | undefined;
 
