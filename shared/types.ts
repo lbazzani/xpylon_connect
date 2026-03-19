@@ -140,15 +140,20 @@ export interface StorageObject {
   mimeType: string;
   size: number;
   originalName: string;
-  variants?: ImageVariants;
+  variants?: Record<string, ImageVariant>;
+  blurhash?: string;
   createdAt: string;
 }
 
-export interface ImageVariants {
-  thumbnail?: string;
-  medium?: string;
-  large?: string;
+export interface ImageVariant {
+  key: string;
+  width: number;
+  height: number;
+  size: number;
 }
+
+// Backward compat alias
+export type ImageVariants = Record<string, ImageVariant>;
 
 export interface Call {
   id: string;
