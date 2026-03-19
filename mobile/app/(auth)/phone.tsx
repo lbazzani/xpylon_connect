@@ -1,5 +1,6 @@
 import { View, Text, KeyboardAvoidingView, Platform, Image, Dimensions, TouchableOpacity, FlatList, Modal, TextInput } from "react-native";
 import { useState, useMemo } from "react";
+import { getLocales } from "expo-localization";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../components/ui/Button";
@@ -54,7 +55,17 @@ const COUNTRIES = [
 
 export default function PhoneScreen() {
   const [phone, setPhone] = useState("");
-  const [country, setCountry] = useState(COUNTRIES[0]); // Default: Italy
+  const [country, setCountry] = useState(() => {
+    try {
+      const locales = getLocales();
+      const regionCode = locales[0]?.regionCode?.toUpperCase();
+      if (regionCode) {
+        const match = COUNTRIES.find((c) => c.code === regionCode);
+        if (match) return match;
+      }
+    } catch {}
+    return COUNTRIES[0]; // Fallback: Italy
+  });
   const [showPicker, setShowPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
