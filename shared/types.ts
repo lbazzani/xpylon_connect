@@ -42,6 +42,7 @@ export enum CallStatus {
 export interface User {
   id: string;
   phone: string;
+  email?: string;
   firstName: string;
   lastName: string;
   companyId?: string;
@@ -201,6 +202,7 @@ export interface RefreshTokenResponse {
 export interface RegisterBody {
   firstName: string;
   lastName: string;
+  email: string;
   companyName: string;
 }
 

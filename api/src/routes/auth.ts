@@ -106,9 +106,23 @@ router.post("/refresh", async (req, res) => {
 // POST /auth/register
 router.post("/register", authMiddleware, async (req, res) => {
   try {
-    const { firstName, lastName, companyName } = req.body;
-    if (!firstName || !lastName || !companyName) {
-      res.status(400).json({ error: "firstName, lastName and companyName are required" });
+    const { firstName, lastName, email, companyName } = req.body;
+    if (!firstName || !lastName || !email || !companyName) {
+      res.status(400).json({ error: "firstName, lastName, email and companyName are required" });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({ error: "Invalid email format" });
+      return;
+    }
+
+    // Check email uniqueness
+    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingEmail && existingEmail.id !== req.userId) {
+      res.status(409).json({ error: "Email already in use" });
       return;
     }
 
@@ -119,7 +133,7 @@ router.post("/register", authMiddleware, async (req, res) => {
 
     const user = await prisma.user.update({
       where: { id: req.userId },
-      data: { firstName, lastName, companyId: company.id },
+      data: { firstName, lastName, email, companyId: company.id },
       include: { company: true },
     });
     res.json({ user });

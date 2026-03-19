@@ -1,4 +1,4 @@
-import { View, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Image } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,15 +14,16 @@ export default function ProfileSetupScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
+  const user = useAuthStore((s) => s.user);
 
   async function handleSave() {
     setLoading(true);
     try {
-      const { user } = await api.patch("/auth/profile", {
+      const { user: updated } = await api.patch("/auth/profile", {
         role: role.trim() || undefined,
         bio: bio.trim() || undefined,
       });
-      setUser(user);
+      setUser(updated);
       router.replace("/(app)/messages");
     } catch {} finally {
       setLoading(false);
@@ -44,29 +45,46 @@ export default function ProfileSetupScreen() {
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="flex-1 px-8 justify-center" style={{ maxWidth: 400, alignSelf: "center", width: "100%" }}>
+          <View className="flex-1 px-8" style={{ maxWidth: 400, alignSelf: "center", width: "100%" }}>
+            {/* Header */}
+            <View className="items-center mt-8 mb-6">
+              <Image
+                source={require("../../assets/images/XpylonLogo_V2.png")}
+                style={{ width: 100, height: 32 }}
+                resizeMode="contain"
+              />
+            </View>
+
             {/* Step indicator */}
-            <View className="flex-row mb-8">
+            <View className="flex-row mb-6">
               <View className="h-1 flex-1 rounded-full mr-0.5" style={{ backgroundColor: colors.primary }} />
+              <View className="h-1 flex-1 rounded-full mx-0.5" style={{ backgroundColor: colors.primary }} />
               <View className="h-1 flex-1 rounded-full mx-0.5" style={{ backgroundColor: colors.primary }} />
               <View className="h-1 flex-1 rounded-full ml-0.5" style={{ backgroundColor: colors.primary }} />
             </View>
 
-            <Text className="text-2xl font-bold text-gray-900 mb-1">Complete your profile</Text>
-            <Text className="text-sm text-gray-500 mb-8 leading-5">
-              Help others understand what you do. You can always update this later.
+            <Text className="text-xs text-gray-400 uppercase tracking-widest font-medium mb-2">
+              Step 2 of 2
+            </Text>
+            <Text className="text-2xl font-bold text-gray-900 mb-1">
+              Almost there{user?.firstName ? `, ${user.firstName}` : ""}!
+            </Text>
+            <Text className="text-sm text-gray-500 mb-6 leading-5">
+              Add your professional details so others can find and connect with you.
             </Text>
 
+            {/* Form */}
             <Input
               label="Job title"
               placeholder="e.g. CEO, Sales Director, CTO..."
               value={role}
               onChangeText={setRole}
+              autoCapitalize="words"
             />
 
             <Input
               label="About you"
-              placeholder="A few words about you and what you're looking for..."
+              placeholder="What do you do and what kind of business opportunities are you looking for?"
               value={bio}
               onChangeText={setBio}
               multiline
@@ -74,15 +92,14 @@ export default function ProfileSetupScreen() {
               numberOfLines={3}
               style={{ minHeight: 80, textAlignVertical: "top" }}
             />
-
-            <Text className="text-xs text-gray-400 text-right -mt-2 mb-4">
+            <Text className="text-xs text-gray-400 text-right -mt-2 mb-6">
               {bio.length}/160
             </Text>
 
-            <Button title="Save and continue" onPress={handleSave} loading={loading} />
+            <Button title="Complete setup" onPress={handleSave} loading={loading} />
 
             <TouchableOpacity onPress={handleSkip} className="mt-5 items-center py-2">
-              <Text className="text-sm text-gray-500 font-medium">Skip for now</Text>
+              <Text className="text-sm text-gray-400">I'll do this later</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

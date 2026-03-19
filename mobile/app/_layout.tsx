@@ -19,7 +19,13 @@ export default function RootLayout() {
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/(auth)/phone");
     } else if (isAuthenticated && inAuthGroup) {
-      router.replace("/(app)/messages");
+      // New user without profile → stay in onboarding
+      const needsOnboarding = user && !user.firstName;
+      if (needsOnboarding) {
+        router.replace("/(auth)/register");
+      } else {
+        router.replace("/(app)/messages");
+      }
     }
   }, [isAuthenticated, isLoading, segments]);
 
