@@ -44,6 +44,17 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="opportunities/index"
+        options={{
+          title: "Opportunities",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "bulb" : "bulb-outline"} size={21} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen name="opportunities/[id]" options={{ href: null }} />
+      <Tabs.Screen name="opportunities/new" options={{ href: null }} />
+      <Tabs.Screen
         name="profile/index"
         options={{
           title: "Profile",

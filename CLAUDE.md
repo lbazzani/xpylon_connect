@@ -53,18 +53,39 @@ B2B mobile app for business networking. Users connect via SMS invite, chat priva
 - WebSocket membership verification on all operations
 
 ## Data model (Prisma)
-- **User** — phone, firstName, lastName, bio, role, company, profileCompleted, lastSeenAt, isOnline
+- **User** — phone, email, firstName, lastName, bio, role, industry, company, embedding (pgvector), profileCompleted, lastSeenAt, isOnline
 - **Company** — name, users[]
 - **Connection** — requester, addressee, status (PENDING/ACCEPTED/DECLINED)
 - **Invite** — sender, phoneTarget, token, status (PENDING/ACCEPTED/EXPIRED), expiresAt
-- **Conversation** — type (DIRECT/OPPORTUNITY_GROUP), name, members[], messages[], calls[]
+- **Conversation** — type (DIRECT/OPPORTUNITY_GROUP), name, opportunityId?, members[], messages[], calls[]
 - **ConversationMember** — conversationId, userId, joinedAt
 - **Message** — content, type (TEXT/IMAGE/FILE/SYSTEM), replyToId, deletedAt, attachments[], receipts[]
 - **MessageReceipt** — per-user delivery/read tracking (deliveredAt, readAt)
 - **Attachment** — messageId, storageObject reference, fileName, mimeType, size
 - **StorageObject** — bucket, key, mimeType, size, variants (JSON with width/height/size per variant)
 - **Call** — conversationId, callerId, type (VOICE/VIDEO), status (RINGING/ONGOING/ENDED/MISSED/DECLINED)
+- **Opportunity** — authorId, title, description, type (PARTNERSHIP/DISTRIBUTION/INVESTMENT/SUPPLY/ACQUISITION/OTHER), tags[], visibility (INVITE_ONLY/NETWORK/OPEN), commMode (PRIVATE/GROUP), status (ACTIVE/PAUSED/CLOSED), expiresAt?
+- **OpportunityInterest** — opportunityId, userId, status (PENDING/ACCEPTED/DECLINED)
+- **OpportunitySaved** — opportunityId, userId
 - **FcmToken** — userId, token
+
+## Opportunities feature
+- 4th tab: Messages | Network | Opportunities | Profile
+- Discover feed: NETWORK + OPEN opportunities, paginated
+- My opportunities: author's own with stats (interested/accepted/chats)
+- Saved: bookmarked opportunities
+- Visibility: INVITE_ONLY (manual share), NETWORK (matching + author approval), OPEN (direct contact)
+- CommMode: PRIVATE (1:1 chats per interested) or GROUP (single group chat)
+- OPEN opportunities auto-accept interest and create conversation immediately
+- NETWORK opportunities require author approval before conversation is created
+
+## Smart matching (pgvector + OpenAI)
+- pgvector extension on PostgreSQL (pgvector/pgvector:pg16 Docker image)
+- text-embedding-3-small for profile embeddings (1536 dimensions)
+- IVFFlat index for cosine similarity search
+- Embeddings auto-generated on register and profile update
+- Xpylon bot suggests matches in chat with anonymized profiles
+- Privacy: only role + industry + bio shown before connection accepted
 
 ## Chat features (WhatsApp-level)
 - Reply to messages (replyToId + quoted preview)
@@ -108,9 +129,10 @@ app/
 ├── _layout.tsx              ← Root layout + auth guard + push notification setup
 ├── (auth)/phone|otp|register|profile-setup
 └── (app)/
-    ├── messages/index|[id]  ← Conversations list + chat screen + call screen
-    ├── network/index        ← Contacts + pending requests
-    └── profile/index        ← User profile
+    ├── messages/index|[id]       ← Conversations list + chat screen + call screen
+    ├── network/index             ← Contacts + pending requests
+    ├── opportunities/index|[id]|new  ← Discover/Mine/Saved + detail + create form
+    └── profile/index             ← User profile
 
 lib/
 ├── theme.ts                 ← Design system tokens (colors, fonts, spacing, shadows)
