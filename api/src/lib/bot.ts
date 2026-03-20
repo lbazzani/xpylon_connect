@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 import prisma from "./prisma";
 import { generateAndSaveEmbedding, findSimilarUsers, formatSuggestionForBot } from "./matching";
+import { moderateOpportunity } from "./moderation";
+import { notifyComplianceReview } from "./notifications";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -237,26 +239,45 @@ export async function generateBotReply(
         const jsonMatch = reply.match(/\[CREATE_OPPORTUNITY\]\s*(\{[\s\S]*\})/);
         if (jsonMatch) {
           const oppData = JSON.parse(jsonMatch[1]);
+          const title = oppData.title || "Untitled Opportunity";
+          const description = oppData.description || "";
+          const type = oppData.type || "OTHER";
+          const tags = oppData.tags || [];
+          const oppVisibility = oppData.visibility || "NETWORK";
+          const commModeVal = oppData.commMode || "PRIVATE";
+
+          // Run compliance review
+          const modResult = await moderateOpportunity(title, description, type, tags);
+
+          if (modResult.decision === "REJECTED") {
+            return reply.replace(/\[CREATE_OPPORTUNITY\]\s*\{[\s\S]*\}/,
+              `I'm sorry, but this opportunity doesn't meet our platform guidelines: ${modResult.reason}. Please revise the content and try again — I'm happy to help you rework it.`);
+          }
+
+          const needsReview = modResult.decision === "UNDER_REVIEW";
+
           const opp = await prisma.opportunity.create({
             data: {
               authorId: userId,
-              title: oppData.title || "Untitled Opportunity",
-              description: oppData.description || "",
-              type: oppData.type || "OTHER",
-              tags: oppData.tags || [],
-              visibility: oppData.visibility || "NETWORK",
-              commMode: oppData.commMode || "PRIVATE",
+              title,
+              description,
+              type,
+              tags,
+              visibility: oppVisibility,
+              commMode: commModeVal,
+              status: needsReview ? "UNDER_REVIEW" : "ACTIVE",
+              reviewNote: needsReview ? modResult.reason : null,
             },
           });
 
-          // If GROUP mode, create the group conversation
-          if (oppData.commMode === "GROUP") {
+          // Only create GROUP conversation if approved immediately
+          if (!needsReview && commModeVal === "GROUP") {
             await prisma.conversation.create({
               data: {
                 type: "OPPORTUNITY_GROUP",
                 topic: "OPPORTUNITY_DISCUSSION",
-                name: oppData.title,
-                opportunityName: oppData.title,
+                name: title,
+                opportunityName: title,
                 opportunityId: opp.id,
                 createdById: userId,
                 members: { create: [{ userId }] },
@@ -267,11 +288,20 @@ export async function generateBotReply(
           // Update conversation name to reflect the opportunity
           await prisma.conversation.update({
             where: { id: conversationId },
-            data: { name: oppData.title, opportunityId: opp.id },
+            data: { name: title, opportunityId: opp.id },
           });
 
+          // Notify admins if flagged
+          if (needsReview) {
+            const authorName = `${user?.firstName || "Unknown"} ${user?.lastName || ""}`.trim();
+            notifyComplianceReview(opp.id, title, authorName, modResult.reason).catch(console.error);
+
+            return reply.replace(/\[CREATE_OPPORTUNITY\]\s*\{[\s\S]*\}/,
+              `Your opportunity "${title}" has been submitted and is currently under compliance review. Our team will review it shortly — you'll receive a notification once it's approved. This usually takes less than 24 hours.`);
+          }
+
           return reply.replace(/\[CREATE_OPPORTUNITY\]\s*\{[\s\S]*\}/,
-            `Your opportunity "${oppData.title}" has been published! It's now visible to ${oppData.visibility === "OPEN" ? "everyone" : oppData.visibility === "NETWORK" ? "matching professionals in the network" : "people you invite"}. You can manage it from the Opportunities tab.`);
+            `Your opportunity "${title}" has been published! It's now visible to ${oppVisibility === "OPEN" ? "everyone" : oppVisibility === "NETWORK" ? "matching professionals in the network" : "people you invite"}. You can manage it from the Opportunities tab.`);
         }
       } catch (err) {
         console.error("Opportunity creation error:", err);

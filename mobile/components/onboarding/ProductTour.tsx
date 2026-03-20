@@ -1,15 +1,13 @@
-import { View, Dimensions, Modal, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { View, Modal } from "react-native";
 import { useState, useCallback } from "react";
-import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSharedValue } from "react-native-reanimated";
 import { TourSlide } from "./TourSlide";
-import { TourProgress } from "./TourProgress";
+import { TourProgressSimple } from "./TourProgress";
 import { TourNavigation } from "./TourNavigation";
-import { useSlideAnimations } from "./useSlideAnimations";
 import type { AnimationConfig, TourMode } from "./types";
 import animationData from "../../../storyboard/animation.json";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const data = animationData as AnimationConfig;
 
 interface ProductTourProps {
@@ -21,58 +19,38 @@ interface ProductTourProps {
 
 export function ProductTour({ mode, onDismiss, onDismissForever, visible = true }: ProductTourProps) {
   const slides = data.slides;
-  const { scrollX, scrollRef, scrollHandler, scrollToIndex, slideWidth } =
-    useSlideAnimations(slides.length);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const scrollX = useSharedValue(0); // kept for type compat
 
   const handleNext = useCallback(() => {
-    const next = currentIndex + 1;
-    if (next < slides.length) {
-      scrollToIndex(next);
-      setCurrentIndex(next);
+    if (currentIndex < slides.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
     }
-  }, [currentIndex, slides.length, scrollToIndex]);
+  }, [currentIndex, slides.length]);
 
-  // Sync currentIndex from native scroll (swipe gestures)
-  const handleMomentumEnd = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-      if (idx >= 0 && idx < slides.length && idx !== currentIndex) {
-        setCurrentIndex(idx);
-      }
-    },
-    [currentIndex, slides.length]
-  );
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  }, [currentIndex]);
 
   const content = (
     <SafeAreaView className="flex-1 bg-white">
+      {/* Current slide */}
       <View className="flex-1">
-        <Animated.ScrollView
-          ref={scrollRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={scrollHandler}
-          onMomentumScrollEnd={handleMomentumEnd}
-          scrollEventThrottle={16}
-          decelerationRate="fast"
-          snapToInterval={SCREEN_WIDTH}
-          snapToAlignment="start"
-        >
-          {slides.map((slide, index) => (
-            <TourSlide
-              key={slide.id}
-              slide={slide}
-              index={index}
-              scrollX={scrollX}
-              isActive={currentIndex === index}
-            />
-          ))}
-        </Animated.ScrollView>
+        <TourSlide
+          key={slides[currentIndex].id}
+          slide={slides[currentIndex]}
+          index={currentIndex}
+          scrollX={scrollX}
+          isActive={true}
+        />
       </View>
 
-      <TourProgress total={slides.length} scrollX={scrollX} slideWidth={slideWidth} />
+      {/* Progress dots */}
+      <TourProgressSimple total={slides.length} active={currentIndex} />
 
+      {/* Navigation */}
       <TourNavigation
         activeIndex={currentIndex}
         totalSlides={slides.length}

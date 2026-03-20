@@ -59,6 +59,7 @@ export interface User {
   role?: string;
   industry?: string;
   profileCompleted: boolean;
+  isAdmin?: boolean;
   lastSeenAt?: string;
   isOnline?: boolean;
   createdAt: string;
@@ -192,6 +193,62 @@ export interface FcmToken {
   userId: string;
   token: string;
   createdAt: string;
+}
+
+// ── Opportunity enums ──
+
+export enum OpportunityType {
+  PARTNERSHIP = "PARTNERSHIP",
+  DISTRIBUTION = "DISTRIBUTION",
+  INVESTMENT = "INVESTMENT",
+  SUPPLY = "SUPPLY",
+  ACQUISITION = "ACQUISITION",
+  OTHER = "OTHER",
+}
+
+export enum OpportunityVisibility {
+  INVITE_ONLY = "INVITE_ONLY",
+  NETWORK = "NETWORK",
+  OPEN = "OPEN",
+}
+
+export enum CommMode {
+  PRIVATE = "PRIVATE",
+  GROUP = "GROUP",
+}
+
+export enum OpportunityStatus {
+  ACTIVE = "ACTIVE",
+  UNDER_REVIEW = "UNDER_REVIEW",
+  PAUSED = "PAUSED",
+  CLOSED = "CLOSED",
+  REJECTED = "REJECTED",
+}
+
+export enum InterestStatus {
+  PENDING = "PENDING",
+  ACCEPTED = "ACCEPTED",
+  DECLINED = "DECLINED",
+}
+
+export interface Opportunity {
+  id: string;
+  authorId: string;
+  title: string;
+  description: string;
+  type: OpportunityType;
+  tags: string[];
+  visibility: OpportunityVisibility;
+  commMode: CommMode;
+  status: OpportunityStatus;
+  reviewNote?: string;
+  reviewedById?: string;
+  reviewedAt?: string;
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  author?: User;
+  reviewedBy?: Partial<User>;
 }
 
 // ── API Request / Response types ──

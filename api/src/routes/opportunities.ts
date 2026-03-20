@@ -1,6 +1,8 @@
 import { Router } from "express";
 import prisma from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
+import { moderateOpportunity } from "../lib/moderation";
+import { notifyComplianceReview } from "../lib/notifications";
 
 const router = Router();
 router.use(authMiddleware);
@@ -17,6 +19,7 @@ router.get("/", async (req, res) => {
       status: status as string,
       authorId: { not: req.userId },
       visibility: { in: ["NETWORK", "OPEN"] },
+      NOT: { status: { in: ["UNDER_REVIEW", "REJECTED"] } },
     };
     if (type && type !== "all") where.type = type as string;
 
@@ -144,6 +147,20 @@ router.post("/", async (req, res) => {
       return;
     }
 
+    // Run AI compliance review
+    const modResult = await moderateOpportunity(title, description || "", type, tags || []);
+
+    // Rejected outright — don't even create
+    if (modResult.decision === "REJECTED") {
+      res.status(422).json({
+        error: "This opportunity does not comply with our guidelines.",
+        reason: modResult.reason,
+      });
+      return;
+    }
+
+    const needsReview = modResult.decision === "UNDER_REVIEW";
+
     const opportunity = await prisma.opportunity.create({
       data: {
         authorId: req.userId!,
@@ -153,13 +170,15 @@ router.post("/", async (req, res) => {
         tags: tags || [],
         visibility,
         commMode,
+        status: needsReview ? "UNDER_REVIEW" : "ACTIVE",
+        reviewNote: needsReview ? modResult.reason : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
       },
       include: { author: { include: { company: true } } },
     });
 
-    // If GROUP mode, create the group conversation immediately
-    if (commMode === "GROUP") {
+    // Only create GROUP conversation if approved immediately
+    if (!needsReview && commMode === "GROUP") {
       await prisma.conversation.create({
         data: {
           type: "OPPORTUNITY_GROUP",
@@ -170,6 +189,12 @@ router.post("/", async (req, res) => {
           members: { create: [{ userId: req.userId! }] },
         },
       });
+    }
+
+    // Notify admins if flagged for review
+    if (needsReview) {
+      const authorName = `${opportunity.author.firstName} ${opportunity.author.lastName}`;
+      notifyComplianceReview(opportunity.id, title, authorName, modResult.reason).catch(console.error);
     }
 
     res.status(201).json({ opportunity });
@@ -212,7 +237,7 @@ router.patch("/:id/status", async (req, res) => {
     if (opp.authorId !== req.userId) { res.status(403).json({ error: "Not authorized" }); return; }
 
     const { status } = req.body;
-    if (!["ACTIVE", "PAUSED", "CLOSED"].includes(status)) {
+    if (!["ACTIVE", "PAUSED", "CLOSED"].includes(status) || opp.status === "UNDER_REVIEW" || opp.status === "REJECTED") {
       res.status(400).json({ error: "Invalid status" });
       return;
     }
