@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ScrollView } from "react-native";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,6 +22,24 @@ const VIS_CONFIG: Record<string, { label: string; color: string; bg: string }> =
   NETWORK: { label: "Network", color: colors.blue, bg: "#EFF6FF" },
   OPEN: { label: "Open", color: colors.green, bg: "#ECFDF5" },
 };
+
+const HOW_IT_WORKS = [
+  {
+    icon: "chatbubble-ellipses-outline",
+    title: "Describe your opportunity",
+    desc: "Our AI assistant will help you write a compelling listing and choose the right settings.",
+  },
+  {
+    icon: "eye-outline",
+    title: "Choose who can see it",
+    desc: "Open to everyone, visible to matching professionals, or invite-only.",
+  },
+  {
+    icon: "people-outline",
+    title: "Connect with interested people",
+    desc: "Review requests or let people contact you directly. Start private or group conversations.",
+  },
+];
 
 function OppCard({ item, onPress }: { item: any; onPress: () => void }) {
   const vis = VIS_CONFIG[item.visibility] || VIS_CONFIG.OPEN;
@@ -65,10 +83,103 @@ function OppCard({ item, onPress }: { item: any; onPress: () => void }) {
   );
 }
 
+function EmptyDiscover({ onCreateWithAssistant }: { onCreateWithAssistant: () => void }) {
+  return (
+    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingHorizontal: 24, paddingVertical: 32 }}>
+      {/* Hero */}
+      <View className="items-center mb-8">
+        <View className="w-20 h-20 rounded-3xl bg-gray-50 items-center justify-center mb-5">
+          <Ionicons name="bulb-outline" size={36} color={colors.gray300} />
+        </View>
+        <Text className="text-xl font-bold text-gray-900 text-center mb-2">
+          Business opportunities,{"\n"}right at your fingertips
+        </Text>
+        <Text className="text-sm text-gray-400 text-center leading-5">
+          Find partnerships, investments, and deals from professionals in your network.
+        </Text>
+      </View>
+
+      {/* How it works */}
+      <View className="bg-gray-50 rounded-2xl p-5 mb-8">
+        <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+          How it works
+        </Text>
+        {HOW_IT_WORKS.map((step, i) => (
+          <View key={i} className="flex-row mb-4 last:mb-0">
+            <View className="w-9 h-9 rounded-xl bg-white items-center justify-center mr-3 mt-0.5">
+              <Ionicons name={step.icon as any} size={18} color={colors.gray500} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-gray-900 mb-0.5">{step.title}</Text>
+              <Text className="text-xs text-gray-500 leading-4">{step.desc}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* CTA */}
+      <TouchableOpacity
+        onPress={onCreateWithAssistant}
+        className="flex-row items-center justify-center py-3.5 rounded-xl"
+        style={{ backgroundColor: colors.gray900 }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="sparkles-outline" size={18} color={colors.white} />
+        <Text className="text-white font-semibold text-sm ml-2">Create with AI assistant</Text>
+      </TouchableOpacity>
+      <Text className="text-xs text-gray-400 text-center mt-3">
+        Our assistant will guide you step by step
+      </Text>
+    </ScrollView>
+  );
+}
+
+function EmptyMine({ onCreateWithAssistant }: { onCreateWithAssistant: () => void }) {
+  return (
+    <View className="flex-1 items-center justify-center px-12">
+      <View className="w-16 h-16 rounded-2xl bg-white items-center justify-center mb-5 border border-gray-100">
+        <Ionicons name="briefcase-outline" size={28} color={colors.gray300} />
+      </View>
+      <Text className="text-lg font-semibold text-gray-900 text-center mb-2">
+        Share what you're looking for
+      </Text>
+      <Text className="text-sm text-gray-400 text-center leading-5">
+        Describe your opportunity and let the right people come to you. Our AI assistant will help you write a great listing.
+      </Text>
+      <TouchableOpacity
+        onPress={onCreateWithAssistant}
+        className="mt-6 flex-row items-center px-5 py-2.5 rounded-full"
+        style={{ backgroundColor: colors.gray900 }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="sparkles-outline" size={16} color={colors.white} />
+        <Text className="text-white font-medium text-sm ml-1.5">Create with AI assistant</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function EmptySaved() {
+  return (
+    <View className="flex-1 items-center justify-center px-12">
+      <View className="w-16 h-16 rounded-2xl bg-white items-center justify-center mb-5 border border-gray-100">
+        <Ionicons name="bookmark-outline" size={28} color={colors.gray300} />
+      </View>
+      <Text className="text-lg font-semibold text-gray-900 text-center mb-2">
+        Nothing saved yet
+      </Text>
+      <Text className="text-sm text-gray-400 text-center leading-5">
+        Bookmark interesting opportunities to review them later.
+      </Text>
+    </View>
+  );
+}
+
 export default function OpportunitiesScreen() {
   const [tab, setTab] = useState<Tab>("discover");
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const router = useRouter();
 
   const fetchData = useCallback(async () => {
@@ -84,11 +195,24 @@ export default function OpportunitiesScreen() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  async function handleCreateWithAssistant() {
+    if (creating) return;
+    setCreating(true);
+    try {
+      const data = await api.post("/conversations/bot-opportunity");
+      router.push(`/(app)/messages/${data.conversationId}` as any);
+    } catch {} finally {
+      setCreating(false);
+    }
+  }
+
   const tabs: { key: Tab; label: string }[] = [
     { key: "discover", label: "Discover" },
     { key: "mine", label: "My opps" },
     { key: "saved", label: "Saved" },
   ];
+
+  const isEmpty = opportunities.length === 0 && !loading;
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
@@ -96,11 +220,16 @@ export default function OpportunitiesScreen() {
         <View className="flex-row items-center justify-between px-5 py-4">
           <Text className="text-xl font-bold text-gray-900">Opportunities</Text>
           <TouchableOpacity
-            onPress={() => router.push("/(app)/opportunities/new" as any)}
-            className="w-9 h-9 rounded-full items-center justify-center border border-gray-200"
-            activeOpacity={0.6}
+            onPress={handleCreateWithAssistant}
+            disabled={creating}
+            className="flex-row items-center px-3.5 py-2 rounded-full"
+            style={{ backgroundColor: colors.gray900, opacity: creating ? 0.5 : 1 }}
+            activeOpacity={0.7}
           >
-            <Ionicons name="add" size={20} color={colors.gray700} />
+            <Ionicons name="sparkles-outline" size={14} color={colors.white} />
+            <Text className="text-white font-medium text-xs ml-1.5">
+              {creating ? "Starting..." : "New"}
+            </Text>
           </TouchableOpacity>
         </View>
         <View className="flex-row px-5 pb-3 gap-2">
@@ -118,45 +247,26 @@ export default function OpportunitiesScreen() {
         </View>
       </View>
 
-      <FlatList
-        data={opportunities}
-        keyExtractor={(item) => item.id}
-        onRefresh={fetchData}
-        refreshing={loading}
-        contentContainerStyle={opportunities.length === 0 && !loading ? { flex: 1 } : { paddingTop: 12, paddingBottom: 20 }}
-        renderItem={({ item }) => (
-          <OppCard item={item} onPress={() => router.push(`/(app)/opportunities/${item.id}` as any)} />
-        )}
-        ListEmptyComponent={
-          !loading ? (
-            <View className="flex-1 items-center justify-center px-12">
-              <View className="w-16 h-16 rounded-2xl bg-white items-center justify-center mb-5 border border-gray-100">
-                <Ionicons name="bulb-outline" size={28} color={colors.gray300} />
-              </View>
-              <Text className="text-lg font-semibold text-gray-900 text-center mb-2">
-                {tab === "discover" ? "No opportunities yet" : tab === "mine" ? "Create your first opportunity" : "Nothing saved yet"}
-              </Text>
-              <Text className="text-sm text-gray-400 text-center leading-5">
-                {tab === "discover"
-                  ? "New business opportunities from your network will appear here."
-                  : tab === "mine"
-                  ? "Share what you're looking for and let others come to you."
-                  : "Save interesting opportunities to review them later."}
-              </Text>
-              {tab !== "saved" && (
-                <TouchableOpacity
-                  onPress={() => router.push("/(app)/opportunities/new" as any)}
-                  className="mt-6 flex-row items-center px-5 py-2.5 rounded-full border border-gray-200"
-                  activeOpacity={0.6}
-                >
-                  <Ionicons name="add" size={16} color={colors.gray700} />
-                  <Text className="text-gray-700 font-medium text-sm ml-1.5">New opportunity</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : null
-        }
-      />
+      {isEmpty ? (
+        tab === "discover" ? (
+          <EmptyDiscover onCreateWithAssistant={handleCreateWithAssistant} />
+        ) : tab === "mine" ? (
+          <EmptyMine onCreateWithAssistant={handleCreateWithAssistant} />
+        ) : (
+          <EmptySaved />
+        )
+      ) : (
+        <FlatList
+          data={opportunities}
+          keyExtractor={(item) => item.id}
+          onRefresh={fetchData}
+          refreshing={loading}
+          contentContainerStyle={{ paddingTop: 12, paddingBottom: 20 }}
+          renderItem={({ item }) => (
+            <OppCard item={item} onPress={() => router.push(`/(app)/opportunities/${item.id}` as any)} />
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }
