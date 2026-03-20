@@ -8,32 +8,66 @@ interface TourNavigationProps {
   totalSlides: number;
   mode: TourMode;
   onNext: () => void;
-  onSkip: () => void;
-  onComplete: () => void;
+  onDismiss: () => void;
+  onDismissForever: () => void;
 }
 
-export function TourNavigation({ activeIndex, totalSlides, mode, onNext, onSkip, onComplete }: TourNavigationProps) {
+export function TourNavigation({ activeIndex, totalSlides, mode, onNext, onDismiss, onDismissForever }: TourNavigationProps) {
   const isLast = activeIndex === totalSlides - 1;
 
+  if (mode === "menu") {
+    return (
+      <View className="px-8 pb-8">
+        {isLast ? (
+          <TouchableOpacity
+            onPress={onDismiss}
+            className="py-4 rounded-2xl items-center"
+            style={{ backgroundColor: colors.gray900 }}
+            activeOpacity={0.7}
+          >
+            <Text className="text-white font-semibold text-base">Got it</Text>
+          </TouchableOpacity>
+        ) : (
+          <View className="flex-row items-center justify-between">
+            <TouchableOpacity onPress={onDismiss} className="py-3 px-4" activeOpacity={0.6}>
+              <Text className="text-sm text-gray-400 font-medium">Close</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onNext}
+              className="flex-row items-center py-3 px-6 rounded-full"
+              style={{ backgroundColor: colors.gray900 }}
+              activeOpacity={0.7}
+            >
+              <Text className="text-white font-medium text-sm mr-1.5">Next</Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // First-launch mode
   return (
     <View className="px-8 pb-8">
       {isLast ? (
-        <TouchableOpacity
-          onPress={onComplete}
-          className="py-4 rounded-2xl items-center"
-          style={{ backgroundColor: colors.primary }}
-          activeOpacity={0.7}
-        >
-          <Text className="text-white font-semibold text-base">
-            {mode === "menu" ? "Got it" : "Get Started"}
-          </Text>
-        </TouchableOpacity>
+        <View>
+          <TouchableOpacity
+            onPress={onDismiss}
+            className="py-4 rounded-2xl items-center mb-3"
+            style={{ backgroundColor: colors.primary }}
+            activeOpacity={0.7}
+          >
+            <Text className="text-white font-semibold text-base">Get Started</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onDismissForever} className="py-2 items-center" activeOpacity={0.6}>
+            <Text className="text-xs text-gray-400">Don't show this again</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <View className="flex-row items-center justify-between">
-          <TouchableOpacity onPress={onSkip} className="py-3 px-4" activeOpacity={0.6}>
-            <Text className="text-sm text-gray-400 font-medium">
-              {mode === "menu" ? "Close" : "Skip"}
-            </Text>
+          <TouchableOpacity onPress={onDismiss} className="py-3 px-4" activeOpacity={0.6}>
+            <Text className="text-sm text-gray-400 font-medium">Skip</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onNext}

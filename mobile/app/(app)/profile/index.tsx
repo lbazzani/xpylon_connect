@@ -120,7 +120,7 @@ export default function ProfileScreen() {
         <ProductTour
           mode="menu"
           visible={showTour}
-          onComplete={() => setShowTour(false)}
+          onDismiss={() => setShowTour(false)}
         />
       )}
     </SafeAreaView>

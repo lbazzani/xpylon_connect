@@ -1,7 +1,7 @@
 import "../global.css";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { View, ActivityIndicator } from "react-native";
 import { registerForPushNotifications, setupNotificationResponseHandler } from "../lib/notifications";
@@ -11,11 +11,15 @@ import { ProductTour } from "../components/onboarding/ProductTour";
 export default function RootLayout() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { hasSeenTour, markTourSeen } = useOnboarding();
+  const [tourDismissed, setTourDismissed] = useState(false);
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (isLoading || hasSeenTour === null) return;
+
+    // Don't route while tour is showing
+    if (!hasSeenTour && !tourDismissed) return;
 
     const inAuthGroup = segments[0] === "(auth)";
 
@@ -29,7 +33,7 @@ export default function RootLayout() {
         router.replace("/(app)/messages");
       }
     }
-  }, [isAuthenticated, isLoading, segments, hasSeenTour]);
+  }, [isAuthenticated, isLoading, segments, hasSeenTour, tourDismissed]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -46,12 +50,19 @@ export default function RootLayout() {
     );
   }
 
-  // Show product tour on first launch
-  if (!hasSeenTour) {
+  // Show product tour if not permanently dismissed
+  if (!hasSeenTour && !tourDismissed) {
     return (
       <>
         <StatusBar style="dark" />
-        <ProductTour mode="first-launch" onComplete={markTourSeen} />
+        <ProductTour
+          mode="first-launch"
+          onDismiss={() => setTourDismissed(true)}
+          onDismissForever={() => {
+            markTourSeen();
+            setTourDismissed(true);
+          }}
+        />
       </>
     );
   }

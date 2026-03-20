@@ -14,11 +14,12 @@ const data = animationData as AnimationConfig;
 
 interface ProductTourProps {
   mode: TourMode;
-  onComplete: () => void;
+  onDismiss: () => void;
+  onDismissForever?: () => void;
   visible?: boolean;
 }
 
-export function ProductTour({ mode, onComplete, visible = true }: ProductTourProps) {
+export function ProductTour({ mode, onDismiss, onDismissForever, visible = true }: ProductTourProps) {
   const slides = data.slides;
   const { scrollX, scrollRef, scrollHandler, scrollToIndex, slideWidth } =
     useSlideAnimations(slides.length);
@@ -77,8 +78,8 @@ export function ProductTour({ mode, onComplete, visible = true }: ProductTourPro
         totalSlides={slides.length}
         mode={mode}
         onNext={handleNext}
-        onSkip={onComplete}
-        onComplete={onComplete}
+        onDismiss={onDismiss}
+        onDismissForever={onDismissForever || onDismiss}
       />
     </SafeAreaView>
   );
