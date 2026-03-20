@@ -159,6 +159,69 @@ export async function notifyIncomingCall(
   await sendPushNotifications(messages);
 }
 
+export async function notifyComplianceReview(
+  opportunityId: string,
+  opportunityTitle: string,
+  authorName: string,
+  reason: string
+): Promise<void> {
+  // Find all admin users
+  const admins = await prisma.user.findMany({ where: { isAdmin: true } });
+
+  const messages: PushMessage[] = [];
+  for (const admin of admins) {
+    const tokens = await getUserPushTokens(admin.id);
+    for (const token of tokens) {
+      messages.push({
+        to: token,
+        title: "Compliance review required",
+        body: `"${opportunityTitle}" by ${authorName} needs review: ${reason}`,
+        data: { type: "compliance_review", opportunityId },
+        sound: "default",
+        priority: "high",
+        channelId: "moderation",
+      });
+    }
+  }
+
+  await sendPushNotifications(messages);
+}
+
+export async function notifyOpportunityApproved(
+  authorId: string,
+  opportunityTitle: string
+): Promise<void> {
+  const tokens = await getUserPushTokens(authorId);
+  const messages: PushMessage[] = tokens.map((token) => ({
+    to: token,
+    title: "Opportunity approved",
+    body: `Your opportunity "${opportunityTitle}" has been approved and is now live.`,
+    data: { type: "opportunity_approved" },
+    sound: "default",
+    channelId: "moderation",
+  }));
+
+  await sendPushNotifications(messages);
+}
+
+export async function notifyOpportunityRejected(
+  authorId: string,
+  opportunityTitle: string,
+  reason: string
+): Promise<void> {
+  const tokens = await getUserPushTokens(authorId);
+  const messages: PushMessage[] = tokens.map((token) => ({
+    to: token,
+    title: "Opportunity not approved",
+    body: `Your opportunity "${opportunityTitle}" was not approved: ${reason}`,
+    data: { type: "opportunity_rejected" },
+    sound: "default",
+    channelId: "moderation",
+  }));
+
+  await sendPushNotifications(messages);
+}
+
 export async function notifyMissedCall(
   userId: string,
   callerName: string,

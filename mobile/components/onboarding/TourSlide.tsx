@@ -5,8 +5,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withDelay,
-  interpolate,
-  Extrapolation,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { SlideIcons } from "./SlideIcons";
@@ -24,43 +22,45 @@ interface TourSlideProps {
 
 export function TourSlide({ slide, index, scrollX, isActive }: TourSlideProps) {
   const stagger = slide.animation?.staggerDelay || 100;
+  const dur = 450;
 
-  // Element entrance animations
+  const iconOpacity = useSharedValue(0);
+  const iconScale = useSharedValue(0.8);
   const taglineOpacity = useSharedValue(0);
-  const taglineY = useSharedValue(20);
+  const taglineY = useSharedValue(16);
   const titleOpacity = useSharedValue(0);
-  const titleY = useSharedValue(20);
+  const titleY = useSharedValue(16);
   const subtitleOpacity = useSharedValue(0);
-  const subtitleY = useSharedValue(20);
+  const subtitleY = useSharedValue(16);
   const featuresOpacity = useSharedValue(0);
-  const featuresY = useSharedValue(20);
+  const featuresY = useSharedValue(16);
 
   useEffect(() => {
     if (isActive) {
-      const dur = 500;
-      taglineOpacity.value = withDelay(stagger * 0, withTiming(1, { duration: dur }));
-      taglineY.value = withDelay(stagger * 0, withTiming(0, { duration: dur }));
-      titleOpacity.value = withDelay(stagger * 1, withTiming(1, { duration: dur }));
-      titleY.value = withDelay(stagger * 1, withTiming(0, { duration: dur }));
-      subtitleOpacity.value = withDelay(stagger * 2, withTiming(1, { duration: dur }));
-      subtitleY.value = withDelay(stagger * 2, withTiming(0, { duration: dur }));
-      featuresOpacity.value = withDelay(stagger * 3, withTiming(1, { duration: dur }));
-      featuresY.value = withDelay(stagger * 3, withTiming(0, { duration: dur }));
+      iconOpacity.value = withTiming(1, { duration: dur });
+      iconScale.value = withTiming(1, { duration: dur });
+      taglineOpacity.value = withDelay(stagger * 1, withTiming(1, { duration: dur }));
+      taglineY.value = withDelay(stagger * 1, withTiming(0, { duration: dur }));
+      titleOpacity.value = withDelay(stagger * 2, withTiming(1, { duration: dur }));
+      titleY.value = withDelay(stagger * 2, withTiming(0, { duration: dur }));
+      subtitleOpacity.value = withDelay(stagger * 3, withTiming(1, { duration: dur }));
+      subtitleY.value = withDelay(stagger * 3, withTiming(0, { duration: dur }));
+      featuresOpacity.value = withDelay(stagger * 4, withTiming(1, { duration: dur }));
+      featuresY.value = withDelay(stagger * 4, withTiming(0, { duration: dur }));
     } else {
-      taglineOpacity.value = 0; taglineY.value = 20;
-      titleOpacity.value = 0; titleY.value = 20;
-      subtitleOpacity.value = 0; subtitleY.value = 20;
-      featuresOpacity.value = 0; featuresY.value = 20;
+      iconOpacity.value = 0;
+      iconScale.value = 0.8;
+      taglineOpacity.value = 0; taglineY.value = 16;
+      titleOpacity.value = 0; titleY.value = 16;
+      subtitleOpacity.value = 0; subtitleY.value = 16;
+      featuresOpacity.value = 0; featuresY.value = 16;
     }
   }, [isActive]);
 
-  // Scroll-driven parallax
-  const containerStyle = useAnimatedStyle(() => {
-    const inputRange = [(index - 1) * SCREEN_WIDTH, index * SCREEN_WIDTH, (index + 1) * SCREEN_WIDTH];
-    const opacity = interpolate(scrollX.value, inputRange, [0, 1, 0], Extrapolation.CLAMP);
-    const scale = interpolate(scrollX.value, inputRange, [0.9, 1, 0.9], Extrapolation.CLAMP);
-    return { opacity, transform: [{ scale }] };
-  });
+  const iconStyle = useAnimatedStyle(() => ({
+    opacity: iconOpacity.value,
+    transform: [{ scale: iconScale.value }],
+  }));
 
   const taglineStyle = useAnimatedStyle(() => ({
     opacity: taglineOpacity.value,
@@ -83,17 +83,16 @@ export function TourSlide({ slide, index, scrollX, isActive }: TourSlideProps) {
   }));
 
   return (
-    <Animated.View
-      style={[containerStyle, { width: SCREEN_WIDTH }]}
-      className="flex-1 px-8 justify-center items-center"
-    >
-      {/* Icon composition */}
-      <SlideIcons
-        composition={slide.iconComposition}
-        useLogoImage={slide.useLogoImage}
-        effect={slide.animation?.iconEffect || "float"}
-        isActive={isActive}
-      />
+    <View style={{ width: SCREEN_WIDTH }} className="flex-1 px-8 justify-center items-center">
+      {/* Icon */}
+      <Animated.View style={iconStyle}>
+        <SlideIcons
+          composition={slide.iconComposition}
+          useLogoImage={slide.useLogoImage}
+          effect={slide.animation?.iconEffect || "float"}
+          isActive={isActive}
+        />
+      </Animated.View>
 
       {/* Tagline */}
       {slide.tagline && (
@@ -123,7 +122,7 @@ export function TourSlide({ slide, index, scrollX, isActive }: TourSlideProps) {
 
       {/* Features */}
       {slide.features && slide.features.length > 0 && (
-        <Animated.View style={featuresStyle} className="w-full">
+        <Animated.View style={featuresStyle} className="w-full" pointerEvents="none">
           {slide.features.map((feature, i) => (
             <View key={i} className="flex-row items-start mb-3 px-2">
               <View className="w-9 h-9 rounded-xl bg-gray-50 items-center justify-center mr-3 mt-0.5">
@@ -137,6 +136,6 @@ export function TourSlide({ slide, index, scrollX, isActive }: TourSlideProps) {
           ))}
         </Animated.View>
       )}
-    </Animated.View>
+    </View>
   );
 }
