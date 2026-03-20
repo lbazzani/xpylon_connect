@@ -53,9 +53,14 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   if (finalStatus !== "granted") return null;
 
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: undefined, // Uses app.json config
-  });
+  let tokenData;
+  try {
+    tokenData = await Notifications.getExpoPushTokenAsync();
+  } catch {
+    // projectId not available (e.g. development build without EAS)
+    console.warn("Push token registration skipped — no projectId available");
+    return null;
+  }
   const token = tokenData.data;
 
   // Register token with backend
