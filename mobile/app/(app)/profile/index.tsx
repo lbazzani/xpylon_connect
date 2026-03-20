@@ -1,12 +1,15 @@
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useAuth } from "../../../hooks/useAuth";
 import { colors } from "../../../lib/theme";
+import { ProductTour } from "../../../components/onboarding/ProductTour";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const [showTour, setShowTour] = useState(false);
 
   function handleLogout() {
     Alert.alert("Sign out", "Are you sure you want to sign out?", [
@@ -22,6 +25,7 @@ export default function ProfileScreen() {
     { label: "My company", subtitle: user.company?.name || "Add company details", iconName: "business-outline" as const, color: colors.blue },
     { label: "Notifications", subtitle: "Manage your preferences", iconName: "notifications-outline" as const, color: colors.green },
     { label: "Privacy & security", subtitle: "Account settings", iconName: "shield-outline" as const, color: colors.gray500 },
+    { label: "How it works", subtitle: "Learn about Xpylon Connect", iconName: "information-circle-outline" as const, color: colors.blue, onPress: () => setShowTour(true) },
   ];
 
   return (
@@ -80,9 +84,10 @@ export default function ProfileScreen() {
           <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
             Settings
           </Text>
-          {menuItems.map((item) => (
+          {menuItems.map((item: any) => (
             <TouchableOpacity
               key={item.label}
+              onPress={item.onPress}
               className="flex-row items-center py-3.5 border-b border-gray-50"
               activeOpacity={0.6}
             >
@@ -110,6 +115,14 @@ export default function ProfileScreen() {
           <Text className="text-sm font-medium" style={{ color: colors.red }}>Sign out</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {showTour && (
+        <ProductTour
+          mode="menu"
+          visible={showTour}
+          onComplete={() => setShowTour(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }

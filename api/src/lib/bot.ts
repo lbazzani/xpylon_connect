@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
 import prisma from "./prisma";
 import { generateAndSaveEmbedding, findSimilarUsers, formatSuggestionForBot } from "./matching";
 
@@ -9,6 +11,17 @@ const openai = new OpenAI({
 
 const BOT_PHONE = process.env.XPYLON_BOT_PHONE || "+10000000000";
 const MODEL = "gpt-4o-mini";
+
+// Load product guide for feature Q&A
+let productGuide = "";
+try {
+  productGuide = fs.readFileSync(
+    path.join(__dirname, "../../../storyboard/content.md"),
+    "utf-8"
+  );
+} catch {
+  console.warn("Could not load storyboard/content.md for bot context");
+}
 
 const SYSTEM_PROMPT = `You are Xpylon, the AI assistant for Xpylon Connect — a B2B professional networking platform. You speak in a warm, professional, and concise tone. You are helpful but never pushy.
 
@@ -45,7 +58,11 @@ Rules:
 - Never ask for sensitive data (passwords, payment info)
 - If the user wants to skip something, respect that immediately
 - Use the user's first name when you know it
-- Don't use emojis excessively — max 1 per message, and only when appropriate`;
+- Don't use emojis excessively — max 1 per message, and only when appropriate
+- When users ask how the app works, what features it has, or want a tutorial, refer to the Product Guide below. Suggest they check "How it works" in their Profile menu for an interactive tour.
+
+--- PRODUCT GUIDE ---
+${productGuide}`;
 
 async function getOrCreateBotUser() {
   let bot = await prisma.user.findUnique({ where: { phone: BOT_PHONE } });

@@ -41,6 +41,7 @@ B2B mobile app for business networking. Users connect via SMS invite, chat priva
 - Orientation: portrait only, smartphone only (no tablet)
 - Auth: OTP via Twilio Verify → JWT (access 15min + refresh 7d)
 - Realtime: WebSocket on same Express port (`/ws?token=JWT`)
+- **Storyboard: `storyboard/content.md` is the source of truth for all feature descriptions (tour + bot + marketing). Before any modification, back up the current version to `storyboard/history/`. Update content.md whenever features are added or changed.**
 
 ## Security
 - All conversation endpoints verify membership before access

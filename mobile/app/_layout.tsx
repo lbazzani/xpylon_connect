@@ -5,21 +5,23 @@ import { useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { View, ActivityIndicator } from "react-native";
 import { registerForPushNotifications, setupNotificationResponseHandler } from "../lib/notifications";
+import { useOnboarding } from "../hooks/useOnboarding";
+import { ProductTour } from "../components/onboarding/ProductTour";
 
 export default function RootLayout() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { hasSeenTour, markTourSeen } = useOnboarding();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || hasSeenTour === null) return;
 
     const inAuthGroup = segments[0] === "(auth)";
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/(auth)/phone");
     } else if (isAuthenticated && inAuthGroup) {
-      // New user without profile → stay in onboarding
       const needsOnboarding = user && !user.firstName;
       if (needsOnboarding) {
         router.replace("/(auth)/register");
@@ -27,27 +29,30 @@ export default function RootLayout() {
         router.replace("/(app)/messages");
       }
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, hasSeenTour]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-
-    // Register for push notifications
     registerForPushNotifications();
-
-    // Handle notification taps
     const subscription = setupNotificationResponseHandler();
-
-    return () => {
-      subscription.remove();
-    };
+    return () => { subscription.remove(); };
   }, [isAuthenticated]);
 
-  if (isLoading) {
+  if (isLoading || hasSeenTour === null) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <ActivityIndicator size="large" color="#F15A24" />
       </View>
+    );
+  }
+
+  // Show product tour on first launch
+  if (!hasSeenTour) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <ProductTour mode="first-launch" onComplete={markTourSeen} />
+      </>
     );
   }
 

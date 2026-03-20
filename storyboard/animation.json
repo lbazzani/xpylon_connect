@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "appName": "Xpylon Connect",
+  "defaults": {
+    "entrance": "fade-up",
+    "iconEffect": "float",
+    "staggerDelay": 100,
+    "transitionDuration": 400
+  },
+  "slides": [
+    {
+      "id": "welcome",
+      "category": "intro",
+      "iconComposition": { "primary": "business-outline" },
+      "useLogoImage": true,
+      "tagline": "WELCOME TO",
+      "title": "Xpylon Connect",
+      "subtitle": "The intelligent B2B networking platform that helps you find, connect, and collaborate with the right professionals.",
+      "features": [
+        { "icon": "sparkles-outline", "title": "AI-guided onboarding", "description": "Get started in minutes" },
+        { "icon": "analytics-outline", "title": "Smart matching", "description": "Relevant professionals, automatically" },
+        { "icon": "shield-checkmark-outline", "title": "Privacy-first", "description": "Your identity, your rules" }
+      ],
+      "animation": { "entrance": "scale-in", "iconEffect": "pulse", "staggerDelay": 120 }
+    },
+    {
+      "id": "ai-onboarding",
+      "category": "feature",
+      "iconComposition": { "primary": "sparkles-outline", "accent": "chatbubble-ellipses-outline", "badge": "AI" },
+      "tagline": "AI-POWERED ONBOARDING",
+      "title": "Your personal networking assistant",
+      "subtitle": "From your first login, the Xpylon assistant guides you through profile setup and helps you craft a compelling professional presence.",
+      "features": [
+        { "icon": "chatbubble-outline", "title": "Conversational setup", "description": "Tell the assistant about yourself — no forms" },
+        { "icon": "create-outline", "title": "Smart suggestions", "description": "AI improves your bio and role description" },
+        { "icon": "flash-outline", "title": "Auto-optimized", "description": "Your profile is ready for smart matching" }
+      ],
+      "animation": { "entrance": "fade-up", "iconEffect": "float", "staggerDelay": 100 }
+    },
+    {
+      "id": "smart-matching",
+      "category": "feature",
+      "iconComposition": { "primary": "analytics-outline", "accent": "people-outline" },
+      "tagline": "SMART MATCHING",
+      "title": "Find the right people, automatically",
+      "subtitle": "AI-powered profile analysis surfaces the most relevant professionals in your industry. No manual searching needed.",
+      "features": [
+        { "icon": "search-outline", "title": "AI-powered discovery", "description": "Matches based on role, industry, and interests" },
+        { "icon": "notifications-outline", "title": "Proactive suggestions", "description": "The assistant suggests connections when ready" },
+        { "icon": "star-outline", "title": "Quality over quantity", "description": "Every suggestion is scored for relevance" }
+      ],
+      "animation": { "entrance": "fade-up", "iconEffect": "float", "staggerDelay": 100 }
+    },
+    {
+      "id": "privacy",
+      "category": "feature",
+      "iconComposition": { "primary": "shield-checkmark-outline", "accent": "eye-off-outline" },
+      "tagline": "PRIVACY-FIRST",
+      "title": "Your identity, your rules",
+      "subtitle": "Matches see only your role and industry — never your name or company. Full profile revealed only after mutual acceptance.",
+      "features": [
+        { "icon": "person-outline", "title": "Anonymized profiles", "description": "Identity hidden until you connect" },
+        { "icon": "hand-right-outline", "title": "No cold outreach", "description": "You control who reaches you" },
+        { "icon": "eye-outline", "title": "Full transparency", "description": "Always know what others can see" }
+      ],
+      "animation": { "entrance": "fade-up", "iconEffect": "pulse", "staggerDelay": 100 }
+    },
+    {
+      "id": "chat",
+      "category": "feature",
+      "iconComposition": { "primary": "chatbubbles-outline", "accent": "checkmark-done-outline" },
+      "tagline": "PROFESSIONAL CHAT",
+      "title": "Messaging built for business",
+      "subtitle": "Full-featured messaging with reply threads, delivery receipts, typing indicators, and file sharing. Organized by topic.",
+      "features": [
+        { "icon": "return-down-forward-outline", "title": "Reply threads", "description": "Quote and respond to specific messages" },
+        { "icon": "checkmark-done-outline", "title": "Read receipts", "description": "Know when your message is delivered and read" },
+        { "icon": "attach-outline", "title": "File sharing", "description": "Images and documents, auto-optimized" }
+      ],
+      "animation": { "entrance": "fade-up", "iconEffect": "float", "staggerDelay": 100 }
+    },
+    {
+      "id": "calls",
+      "category": "feature",
+      "iconComposition": { "primary": "videocam-outline", "accent": "call-outline" },
+      "tagline": "VOICE & VIDEO",
+      "title": "Connect face to face, anywhere",
+      "subtitle": "Make voice and video calls directly within the app. Professional call interface with full controls.",
+      "features": [
+        { "icon": "call-outline", "title": "One-tap calling", "description": "Voice and video from any conversation" },
+        { "icon": "options-outline", "title": "In-call controls", "description": "Mute, speaker, camera toggle" },
+        { "icon": "notifications-outline", "title": "Never miss a call", "description": "Push notifications for incoming calls" }
+      ],
+      "animation": { "entrance": "fade-up", "iconEffect": "float", "staggerDelay": 100 }
+    },
+    {
+      "id": "opportunities",
+      "category": "feature",
+      "iconComposition": { "primary": "bulb-outline", "accent": "briefcase-outline" },
+      "tagline": "OPPORTUNITIES",
+      "title": "Create, discover, and manage deals",
+      "subtitle": "Post partnerships, investments, and more. The AI assistant helps you craft compelling listings and manage interested parties.",
+      "features": [
+        { "icon": "sparkles-outline", "title": "AI-assisted creation", "description": "Write listings through conversation" },
+        { "icon": "eye-outline", "title": "Flexible visibility", "description": "Open, network-matched, or invite-only" },
+        { "icon": "chatbubble-ellipses-outline", "title": "Built-in communication", "description": "Private or group chats per opportunity" }
+      ],
+      "animation": { "entrance": "fade-up", "iconEffect": "float", "staggerDelay": 100 }
+    },
+    {
+      "id": "get-started",
+      "category": "cta",
+      "iconComposition": { "primary": "rocket-outline" },
+      "tagline": "READY?",
+      "title": "Your next connection is a conversation away",
+      "subtitle": "Sign in with your phone number and let the Xpylon assistant guide you through the rest.",
+      "animation": { "entrance": "scale-in", "iconEffect": "pulse", "staggerDelay": 80 }
+    }
+  ]
+}
