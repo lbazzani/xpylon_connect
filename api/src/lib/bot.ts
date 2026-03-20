@@ -24,6 +24,17 @@ Your responsibilities:
 5. SUGGEST connections: When the user asks for connections or seems ready, you can suggest matches.
    Use the phrase "[SUGGEST_MATCHES]" in your response when you want to show suggestions.
    The system will replace this with actual matching results.
+6. CREATE OPPORTUNITIES: When in an OPPORTUNITY_CREATION conversation, guide the user step by step:
+   a. Ask for the TYPE (partnership, distribution, investment, supply, acquisition, other)
+   b. Ask for a TITLE (suggest one based on what they describe)
+   c. Ask for a DESCRIPTION (help them write a compelling one, suggest improvements)
+   d. Ask for TAGS (suggest relevant ones based on the description)
+   e. Ask about VISIBILITY: open (anyone can contact), network (you approve requests), invite-only (you share manually)
+   f. Ask about COMMUNICATION: private chats (separate 1:1 with each interested person) or group chat (one shared conversation)
+   g. When all info is collected, use "[CREATE_OPPORTUNITY]" followed by JSON with the collected data
+
+   Be helpful — suggest titles, improve descriptions, recommend tags based on their industry.
+   Confirm before creating: "Here's a summary of your opportunity: ... Shall I publish it?"
 
 Rules:
 - Always respond in English
@@ -79,6 +90,7 @@ export async function createWelcomeConversation(userId: string): Promise<string>
   const conversation = await prisma.conversation.create({
     data: {
       type: "DIRECT",
+      topic: "PROFILING",
       createdById: bot.id,
       members: {
         create: [{ userId: bot.id }, { userId }],
@@ -114,6 +126,35 @@ export async function createWelcomeConversation(userId: string): Promise<string>
     // Small delay between messages for natural feel
     await new Promise((r) => setTimeout(r, 300));
   }
+
+  return conversation.id;
+}
+
+export async function createOpportunityConversation(userId: string): Promise<string> {
+  const bot = await getOrCreateBotUser();
+
+  const conversation = await prisma.conversation.create({
+    data: {
+      type: "DIRECT",
+      topic: "OPPORTUNITY_CREATION",
+      createdById: bot.id,
+      members: {
+        create: [{ userId: bot.id }, { userId }],
+      },
+    },
+  });
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const name = user?.firstName || "there";
+
+  await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      senderId: bot.id,
+      content: `Hi ${name}! Let's create a new business opportunity. What kind of opportunity are you looking to share? For example: a partnership, distribution deal, investment, supply contract, or acquisition.`,
+      type: "TEXT",
+    },
+  });
 
   return conversation.id;
 }
@@ -171,6 +212,54 @@ export async function generateBotReply(
       const suggestions = await findSimilarUsers(userId, 3);
       const formatted = formatSuggestionForBot(suggestions);
       return reply.replace("[SUGGEST_MATCHES]", formatted);
+    }
+
+    // Handle opportunity creation trigger
+    if (reply.includes("[CREATE_OPPORTUNITY]")) {
+      try {
+        const jsonMatch = reply.match(/\[CREATE_OPPORTUNITY\]\s*(\{[\s\S]*\})/);
+        if (jsonMatch) {
+          const oppData = JSON.parse(jsonMatch[1]);
+          const opp = await prisma.opportunity.create({
+            data: {
+              authorId: userId,
+              title: oppData.title || "Untitled Opportunity",
+              description: oppData.description || "",
+              type: oppData.type || "OTHER",
+              tags: oppData.tags || [],
+              visibility: oppData.visibility || "NETWORK",
+              commMode: oppData.commMode || "PRIVATE",
+            },
+          });
+
+          // If GROUP mode, create the group conversation
+          if (oppData.commMode === "GROUP") {
+            await prisma.conversation.create({
+              data: {
+                type: "OPPORTUNITY_GROUP",
+                topic: "OPPORTUNITY_DISCUSSION",
+                name: oppData.title,
+                opportunityName: oppData.title,
+                opportunityId: opp.id,
+                createdById: userId,
+                members: { create: [{ userId }] },
+              },
+            });
+          }
+
+          // Update conversation name to reflect the opportunity
+          await prisma.conversation.update({
+            where: { id: conversationId },
+            data: { name: oppData.title, opportunityId: opp.id },
+          });
+
+          return reply.replace(/\[CREATE_OPPORTUNITY\]\s*\{[\s\S]*\}/,
+            `Your opportunity "${oppData.title}" has been published! It's now visible to ${oppData.visibility === "OPEN" ? "everyone" : oppData.visibility === "NETWORK" ? "matching professionals in the network" : "people you invite"}. You can manage it from the Opportunities tab.`);
+        }
+      } catch (err) {
+        console.error("Opportunity creation error:", err);
+        return "I had trouble creating the opportunity. Could you try again?";
+      }
     }
 
     // Update embedding after each message

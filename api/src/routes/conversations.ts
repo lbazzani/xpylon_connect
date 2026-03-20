@@ -5,6 +5,99 @@ import { authMiddleware } from "../middleware/auth";
 const router = Router();
 router.use(authMiddleware);
 
+// GET /conversations/grouped — conversations grouped by contact
+router.get("/grouped", async (req, res) => {
+  try {
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        members: { some: { userId: req.userId } },
+      },
+      include: {
+        members: { include: { user: { include: { company: true } } } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1, include: { sender: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Group by the other member (contact)
+    const grouped = new Map<string, {
+      contact: any;
+      conversations: any[];
+      lastActivityAt: string;
+    }>();
+
+    for (const conv of conversations) {
+      const otherMember = conv.members.find((m) => m.userId !== req.userId);
+      if (!otherMember) continue;
+      const contactId = otherMember.userId;
+      const lastMsg = conv.messages[0];
+      const lastActivity = lastMsg?.createdAt.toISOString() || conv.createdAt.toISOString();
+
+      const convData = {
+        id: conv.id,
+        type: conv.type,
+        topic: conv.topic,
+        name: conv.name,
+        opportunityName: conv.opportunityName,
+        opportunityId: conv.opportunityId,
+        lastMessage: lastMsg ? {
+          id: lastMsg.id,
+          content: lastMsg.content,
+          senderId: lastMsg.senderId,
+          createdAt: lastMsg.createdAt.toISOString(),
+          sender: lastMsg.sender,
+        } : null,
+        createdAt: conv.createdAt.toISOString(),
+      };
+
+      if (grouped.has(contactId)) {
+        const existing = grouped.get(contactId)!;
+        existing.conversations.push(convData);
+        if (lastActivity > existing.lastActivityAt) {
+          existing.lastActivityAt = lastActivity;
+        }
+      } else {
+        grouped.set(contactId, {
+          contact: otherMember.user,
+          conversations: [convData],
+          lastActivityAt: lastActivity,
+        });
+      }
+    }
+
+    // For group conversations, use the group name as contact
+    // Sort groups by last activity
+    const result = Array.from(grouped.entries())
+      .map(([contactId, data]) => ({
+        contactId,
+        contact: data.contact,
+        conversations: data.conversations.sort((a: any, b: any) =>
+          new Date(b.lastMessage?.createdAt || b.createdAt).getTime() -
+          new Date(a.lastMessage?.createdAt || a.createdAt).getTime()
+        ),
+        threadCount: data.conversations.length,
+        lastActivityAt: data.lastActivityAt,
+      }))
+      .sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime());
+
+    res.json({ threads: result });
+  } catch (err) {
+    console.error("Grouped conversations error:", err);
+    res.status(500).json({ error: "Failed to fetch grouped conversations" });
+  }
+});
+
+// POST /conversations/bot-opportunity — create opportunity conversation with bot
+router.post("/bot-opportunity", async (req, res) => {
+  try {
+    const { createOpportunityConversation } = await import("../lib/bot");
+    const conversationId = await createOpportunityConversation(req.userId!);
+    res.status(201).json({ conversationId });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create opportunity conversation" });
+  }
+});
+
 // GET /conversations — list conversations with last message
 router.get("/", async (req, res) => {
   try {

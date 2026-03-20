@@ -82,13 +82,14 @@ enum InviteStatus {
 }
 
 model Conversation {
-  id              String           @id @default(uuid())
+  id              String              @id @default(uuid())
   type            ConversationType
+  topic           ConversationTopic   @default(GENERAL)
   name            String?
   opportunityName String?
   opportunityId   String?
   createdById     String
-  createdAt       DateTime         @default(now())
+  createdAt       DateTime            @default(now())
 
   opportunity Opportunity?       @relation(fields: [opportunityId], references: [id])
   members     ConversationMember[]
@@ -99,6 +100,14 @@ model Conversation {
 enum ConversationType {
   DIRECT
   OPPORTUNITY_GROUP
+}
+
+enum ConversationTopic {
+  GENERAL
+  PROFILING
+  OPPORTUNITY_CREATION
+  OPPORTUNITY_DISCUSSION
+  SUGGESTIONS
 }
 
 model ConversationMember {

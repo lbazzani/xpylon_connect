@@ -17,6 +17,14 @@ export enum ConversationType {
   OPPORTUNITY_GROUP = "OPPORTUNITY_GROUP",
 }
 
+export enum ConversationTopic {
+  GENERAL = "GENERAL",
+  PROFILING = "PROFILING",
+  OPPORTUNITY_CREATION = "OPPORTUNITY_CREATION",
+  OPPORTUNITY_DISCUSSION = "OPPORTUNITY_DISCUSSION",
+  SUGGESTIONS = "SUGGESTIONS",
+}
+
 export enum MessageType {
   TEXT = "TEXT",
   IMAGE = "IMAGE",
@@ -84,13 +92,24 @@ export interface Invite {
 export interface Conversation {
   id: string;
   type: ConversationType;
+  topic: ConversationTopic;
   name?: string;
   opportunityName?: string;
+  opportunityId?: string;
   createdById: string;
   createdAt: string;
   members?: ConversationMember[];
   lastMessage?: Message;
   unreadCount?: number;
+}
+
+// Grouped conversations by contact for the messages list
+export interface ContactThread {
+  contactId: string;
+  contact: User;
+  conversations: Conversation[];
+  threadCount: number;
+  lastActivityAt: string;
 }
 
 export interface ConversationMember {

@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "ConversationTopic" AS ENUM ('GENERAL', 'PROFILING', 'OPPORTUNITY_CREATION', 'OPPORTUNITY_DISCUSSION', 'SUGGESTIONS');
+
+-- AlterTable
+ALTER TABLE "Conversation" ADD COLUMN "topic" "ConversationTopic" NOT NULL DEFAULT 'GENERAL';
