@@ -1,4 +1,4 @@
-import { View, Dimensions, Modal } from "react-native";
+import { View, Dimensions, Modal, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { useState, useCallback } from "react";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,7 +20,7 @@ interface ProductTourProps {
 
 export function ProductTour({ mode, onComplete, visible = true }: ProductTourProps) {
   const slides = data.slides;
-  const { scrollX, scrollRef, scrollHandler, activeIndex, scrollToIndex, slideWidth } =
+  const { scrollX, scrollRef, scrollHandler, scrollToIndex, slideWidth } =
     useSlideAnimations(slides.length);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -32,13 +32,16 @@ export function ProductTour({ mode, onComplete, visible = true }: ProductTourPro
     }
   }, [currentIndex, slides.length, scrollToIndex]);
 
-  const handleScroll = useCallback(() => {
-    // Sync state with animated value for TourNavigation
-    const idx = Math.round(scrollX.value / SCREEN_WIDTH);
-    if (idx !== currentIndex && idx >= 0 && idx < slides.length) {
-      setCurrentIndex(idx);
-    }
-  }, [currentIndex, slides.length]);
+  // Sync currentIndex from native scroll (swipe gestures)
+  const handleMomentumEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+      if (idx >= 0 && idx < slides.length && idx !== currentIndex) {
+        setCurrentIndex(idx);
+      }
+    },
+    [currentIndex, slides.length]
+  );
 
   const content = (
     <SafeAreaView className="flex-1 bg-white">
@@ -49,8 +52,11 @@ export function ProductTour({ mode, onComplete, visible = true }: ProductTourPro
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onScroll={scrollHandler}
-          onMomentumScrollEnd={handleScroll}
+          onMomentumScrollEnd={handleMomentumEnd}
           scrollEventThrottle={16}
+          decelerationRate="fast"
+          snapToInterval={SCREEN_WIDTH}
+          snapToAlignment="start"
         >
           {slides.map((slide, index) => (
             <TourSlide
