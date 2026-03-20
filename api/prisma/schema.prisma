@@ -19,6 +19,7 @@ model User {
   companyId        String?
   embedding        Unsupported("vector(1536)")?
   profileCompleted Boolean   @default(false)
+  isAdmin          Boolean   @default(false)
   lastSeenAt       DateTime?
   isOnline         Boolean   @default(false)
   createdAt        DateTime  @default(now())
@@ -31,9 +32,10 @@ model User {
   conversationMembers  ConversationMember[]
   fcmTokens            FcmToken[]
   messageReceipts      MessageReceipt[]
-  opportunities        Opportunity[]
-  opportunityInterests OpportunityInterest[]
-  opportunitySaved     OpportunitySaved[]
+  opportunities           Opportunity[]
+  opportunityInterests    OpportunityInterest[]
+  opportunitySaved        OpportunitySaved[]
+  reviewedOpportunities   Opportunity[]         @relation("ReviewedBy")
 }
 
 model Company {
@@ -223,20 +225,24 @@ enum CallStatus {
 }
 
 model Opportunity {
-  id          String                @id @default(uuid())
-  authorId    String
-  title       String
-  description String
-  type        OpportunityType
-  tags        String[]
-  visibility  OpportunityVisibility
-  commMode    CommMode
-  status      OpportunityStatus     @default(ACTIVE)
-  expiresAt   DateTime?
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  id           String                @id @default(uuid())
+  authorId     String
+  title        String
+  description  String
+  type         OpportunityType
+  tags         String[]
+  visibility   OpportunityVisibility
+  commMode     CommMode
+  status       OpportunityStatus     @default(ACTIVE)
+  reviewNote   String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
 
   author        User                  @relation(fields: [authorId], references: [id])
+  reviewedBy    User?                 @relation("ReviewedBy", fields: [reviewedById], references: [id])
   interests     OpportunityInterest[]
   savedBy       OpportunitySaved[]
   conversations Conversation[]
@@ -268,8 +274,10 @@ enum CommMode {
 
 enum OpportunityStatus {
   ACTIVE
+  UNDER_REVIEW
   PAUSED
   CLOSED
+  REJECTED
 }
 
 model OpportunityInterest {
