@@ -204,7 +204,7 @@ router.post("/scan", authMiddleware, upload.array("cards", 20), async (req, res)
       imports.push({
         id: cardImport.id,
         status: cardImport.status,
-        imageUrl: `/storage/${storageObject.bucket}/${storageObject.key}?variant=medium`,
+        imageUrl: `/storage/attachments/${storageObject.key}?variant=medium`,
       });
     }
 
