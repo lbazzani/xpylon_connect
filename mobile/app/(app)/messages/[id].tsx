@@ -207,15 +207,39 @@ export default function ChatScreen() {
 
   const isGroup = conversation?.type === "OPPORTUNITY_GROUP";
   const otherMember = conversation?.members?.find((m) => m.userId !== user?.id)?.user;
+  const contactName = otherMember ? `${otherMember.firstName} ${otherMember.lastName}` : "Chat";
+  const topicName = conversation?.name || conversation?.opportunityName;
   const title = isGroup
     ? conversation?.name || "Group"
-    : otherMember
-    ? `${otherMember.firstName} ${otherMember.lastName}`
-    : "Chat";
+    : contactName;
+
+  // Handle SET_TOPIC markers from auto-naming suggestions
+  async function handleSetTopic(topic: string) {
+    try {
+      await api.patch(`/conversations/${id}`, { name: topic });
+      loadData();
+    } catch {}
+  }
+
+  function handleRenameConversation() {
+    Alert.prompt(
+      "Set topic",
+      "Give this conversation a topic name",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Set", onPress: (name) => { if (name?.trim()) handleSetTopic(name.trim()); } },
+      ],
+      "plain-text",
+      topicName || ""
+    );
+  }
 
   // Online/last seen subtitle
   let subtitle = "";
-  if (isGroup) {
+  // Show topic name if conversation has one (for DIRECT conversations)
+  if (topicName && !isGroup) {
+    subtitle = topicName;
+  } else if (isGroup) {
     subtitle = `${conversation?.members?.length || 0} participants`;
   } else if (otherMember) {
     if (otherMember.isOnline) {
@@ -277,14 +301,16 @@ export default function ChatScreen() {
             </Text>
           </View>
         ) : null}
-        <View className="flex-1">
+        <TouchableOpacity className="flex-1" onPress={handleRenameConversation} activeOpacity={0.7}>
           <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>{title}</Text>
           {subtitle ? (
-            <Text className={`text-xs mt-0.5 ${typingNames.length > 0 ? "text-primary" : otherMember?.isOnline ? "text-accent-green" : "text-gray-400"}`}>
+            <Text className={`text-xs mt-0.5 ${typingNames.length > 0 ? "text-primary" : topicName ? "text-blue-500" : otherMember?.isOnline ? "text-accent-green" : "text-gray-400"}`} numberOfLines={1}>
               {subtitle}
             </Text>
-          ) : null}
-        </View>
+          ) : (
+            <Text className="text-xs mt-0.5 text-gray-300">Tap to set topic</Text>
+          )}
+        </TouchableOpacity>
         {!isGroup && (
           <>
             <TouchableOpacity
@@ -338,6 +364,7 @@ export default function ChatScreen() {
                   onReply={(msg) => setReplyingTo(msg)}
                   onDelete={handleDelete}
                   onViewOpportunity={(oppId) => router.push(`/(app)/opportunities/${oppId}` as any)}
+                  onSetTopic={handleSetTopic}
                 />
               );
             }}

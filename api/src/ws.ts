@@ -4,6 +4,7 @@ import { verifyAccessToken } from "./lib/jwt";
 import prisma from "./lib/prisma";
 import { notifyNewMessage, notifyIncomingCall, notifyMissedCall } from "./lib/notifications";
 import { isBotConversation, generateBotReply, getBotUserId } from "./lib/bot";
+import { shouldCheckNaming, suggestConversationName } from "./lib/conversationNaming";
 
 interface AuthenticatedSocket extends WebSocket {
   userId?: string;
@@ -212,6 +213,32 @@ export function setupWebSocket(server: http.Server) {
                 console.error("Bot reply error:", err);
               }
             })();
+          }
+
+          // ── Auto-naming for untitled conversations ──
+          if (!isBot) {
+            shouldCheckNaming(data.conversationId).then(async (shouldCheck) => {
+              if (shouldCheck) {
+                await suggestConversationName(data.conversationId);
+                // Broadcast the naming suggestion
+                const namingMsg = await prisma.message.findFirst({
+                  where: { conversationId: data.conversationId, type: "SYSTEM" },
+                  orderBy: { createdAt: "desc" },
+                  include: {
+                    sender: { include: { company: true } },
+                    attachments: { include: { storageObject: true } },
+                    receipts: { include: { user: true } },
+                    replyTo: { include: { sender: { include: { company: true } }, attachments: { include: { storageObject: true } } } },
+                  },
+                });
+                if (namingMsg) {
+                  await broadcastToConversation(
+                    data.conversationId,
+                    JSON.stringify({ type: "new_message", conversationId: data.conversationId, message: namingMsg })
+                  );
+                }
+              }
+            }).catch(console.error);
           }
         }
 

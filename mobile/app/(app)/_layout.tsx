@@ -1,31 +1,16 @@
 import { Tabs } from "expo-router";
 import { Platform, View, Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../lib/theme";
 import { useAuthStore } from "../../store/auth";
 
 export default function AppLayout() {
   const isDemo = useAuthStore((s) => s.isDemo);
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={{ flex: 1 }}>
-      {isDemo && (
-        <View
-          style={{
-            backgroundColor: "#FEF3C7",
-            paddingVertical: 4,
-            paddingHorizontal: 16,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Ionicons name="flask-outline" size={12} color="#D97706" />
-          <Text style={{ fontSize: 11, fontWeight: "600", color: "#D97706", marginLeft: 4 }}>
-            DEMO MODE
-          </Text>
-        </View>
-      )}
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -55,6 +40,7 @@ export default function AppLayout() {
           }}
         />
         <Tabs.Screen name="messages/[id]" options={{ href: null }} />
+        <Tabs.Screen name="messages/contact/[contactId]" options={{ href: null }} />
         <Tabs.Screen
           name="network/index"
           options={{
@@ -79,6 +65,7 @@ export default function AppLayout() {
         <Tabs.Screen name="opportunities/[id]" options={{ href: null }} />
         <Tabs.Screen name="opportunities/new" options={{ href: null }} />
         <Tabs.Screen name="opportunities/review" options={{ href: null }} />
+        <Tabs.Screen name="opportunities/interested" options={{ href: null }} />
         <Tabs.Screen name="profile/edit" options={{ href: null }} />
         <Tabs.Screen
           name="profile/index"
@@ -90,6 +77,32 @@ export default function AppLayout() {
           }}
         />
       </Tabs>
+
+      {/* Demo mode banner — positioned absolutely below the safe area, above content */}
+      {isDemo && (
+        <View
+          style={{
+            position: "absolute",
+            top: insets.top,
+            left: 0,
+            right: 0,
+            backgroundColor: "#FEF3C7",
+            paddingVertical: 3,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            borderBottomWidth: 1,
+            borderBottomColor: "#FDE68A",
+          }}
+          pointerEvents="none"
+        >
+          <Ionicons name="flask-outline" size={11} color="#D97706" />
+          <Text style={{ fontSize: 10, fontWeight: "600", color: "#D97706", marginLeft: 4 }}>
+            DEMO MODE
+          </Text>
+        </View>
+      )}
     </View>
   );
 }

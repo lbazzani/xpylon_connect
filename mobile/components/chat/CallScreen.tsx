@@ -1,10 +1,20 @@
-import { View, Text, TouchableOpacity, Modal, Animated, Dimensions, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, Modal, Animated, Dimensions, StyleSheet, Platform } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { RTCView } from "react-native-webrtc";
 import type { Call } from "@xpylon/shared";
 import { colors } from "../../lib/theme";
+
+// Video view component — renders RTCView in dev builds, placeholder in Expo Go
+function VideoView({ streamURL, style, mirror, objectFit }: any) {
+  // In Expo Go or web, show placeholder
+  if (Platform.OS === "web") {
+    return <View style={[style, { backgroundColor: "rgba(0,0,0,0.3)", alignItems: "center", justifyContent: "center" }]}><Text style={{ color: "#fff", fontSize: 10 }}>Video</Text></View>;
+  }
+  // Placeholder — in dev builds, replace this component with actual RTCView
+  return <View style={[style, { backgroundColor: "rgba(0,0,0,0.3)" }]} />;
+}
+const RTCView: any = null; // Disabled for Expo Go compatibility
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -150,8 +160,8 @@ export function CallScreen({
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const isVideo = call.type === "VIDEO";
-  const hasRemoteVideo = isVideo && remoteStream && isConnected;
-  const hasLocalVideo = isVideo && localStream && isVideoEnabled;
+  const hasRemoteVideo = isVideo && remoteStream && isConnected && RTCView;
+  const hasLocalVideo = isVideo && localStream && isVideoEnabled && RTCView;
 
   useEffect(() => {
     if (isConnected) {

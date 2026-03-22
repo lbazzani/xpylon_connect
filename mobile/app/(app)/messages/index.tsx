@@ -1,128 +1,13 @@
-import { View, Text, FlatList, TouchableOpacity, Animated } from "react-native";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { View, Text, FlatList, TouchableOpacity, Modal } from "react-native";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Avatar } from "../../../components/ui/Avatar";
 import { api } from "../../../lib/api";
 import { colors } from "../../../lib/theme";
+import type { ContactThread, Connection, User } from "@xpylon/shared";
 import { useAuthStore } from "../../../store/auth";
-import type { ContactThread } from "@xpylon/shared";
-
-const TOPIC_LABELS: Record<string, string> = {
-  GENERAL: "General",
-  PROFILING: "Profile setup",
-  OPPORTUNITY_CREATION: "New opportunity",
-  OPPORTUNITY_DISCUSSION: "Opportunity",
-  SUGGESTIONS: "Suggestions",
-};
-
-const TOPIC_ICONS: Record<string, string> = {
-  GENERAL: "chatbubble-outline",
-  PROFILING: "person-outline",
-  OPPORTUNITY_CREATION: "bulb-outline",
-  OPPORTUNITY_DISCUSSION: "briefcase-outline",
-  SUGGESTIONS: "sparkles-outline",
-};
-
-function ThreadItem({ thread, onPressConversation }: { thread: ContactThread; onPressConversation: (id: string) => void }) {
-  const [expanded, setExpanded] = useState(false);
-  const animValue = useRef(new Animated.Value(0)).current;
-  const isBot = thread.contact.phone === "+10000000000";
-
-  function toggleExpand() {
-    const toValue = expanded ? 0 : 1;
-    Animated.timing(animValue, { toValue, duration: 200, useNativeDriver: false }).start();
-    setExpanded(!toValue);
-  }
-
-  const lastConv = thread.conversations[0];
-  const timeAgo = formatTimeAgo(thread.lastActivityAt);
-
-  return (
-    <View className="border-b border-gray-50">
-      {/* Contact header row */}
-      <TouchableOpacity
-        onPress={thread.threadCount === 1 ? () => onPressConversation(lastConv.id) : toggleExpand}
-        className="flex-row items-center px-5 py-3.5"
-        activeOpacity={0.6}
-      >
-        <Avatar
-          firstName={thread.contact.firstName}
-          lastName={thread.contact.lastName}
-          size="md"
-          isOnline={thread.contact.isOnline}
-          color={isBot ? colors.primary : undefined}
-        />
-        <View className="flex-1 ml-3">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-[15px] font-semibold text-gray-900" numberOfLines={1}>
-              {thread.contact.firstName} {thread.contact.lastName}
-            </Text>
-            <Text className="text-xs text-gray-400">{timeAgo}</Text>
-          </View>
-          <View className="flex-row items-center mt-0.5">
-            {thread.threadCount > 1 ? (
-              <>
-                <Ionicons name="layers-outline" size={12} color={colors.gray400} />
-                <Text className="text-xs text-gray-400 ml-1">
-                  {thread.threadCount} conversations
-                </Text>
-              </>
-            ) : (
-              <Text className="text-sm text-gray-500" numberOfLines={1}>
-                {lastConv.lastMessage?.content || "No messages yet"}
-              </Text>
-            )}
-          </View>
-        </View>
-        {thread.threadCount > 1 && (
-          <Ionicons
-            name={expanded ? "chevron-up" : "chevron-down"}
-            size={16}
-            color={colors.gray400}
-            style={{ marginLeft: 8 }}
-          />
-        )}
-      </TouchableOpacity>
-
-      {/* Expanded conversation list */}
-      {expanded && thread.threadCount > 1 && (
-        <View className="bg-gray-50 pb-1">
-          {thread.conversations.map((conv: any) => {
-            const topicLabel = conv.name || conv.opportunityName || TOPIC_LABELS[conv.topic] || "Chat";
-            const topicIcon = TOPIC_ICONS[conv.topic] || "chatbubble-outline";
-            const convTime = conv.lastMessage?.createdAt
-              ? formatTimeAgo(conv.lastMessage.createdAt)
-              : "";
-
-            return (
-              <TouchableOpacity
-                key={conv.id}
-                onPress={() => onPressConversation(conv.id)}
-                className="flex-row items-center px-5 py-2.5 ml-14"
-                activeOpacity={0.6}
-              >
-                <Ionicons name={topicIcon as any} size={16} color={colors.gray400} />
-                <View className="flex-1 ml-2.5">
-                  <Text className="text-sm font-medium text-gray-800" numberOfLines={1}>
-                    {topicLabel}
-                  </Text>
-                  {conv.lastMessage?.content && (
-                    <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={1}>
-                      {conv.lastMessage.content}
-                    </Text>
-                  )}
-                </View>
-                <Text className="text-xs text-gray-300 ml-2">{convTime}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
-    </View>
-  );
-}
 
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -136,10 +21,76 @@ function formatTimeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function ThreadRow({ thread, onPress }: { thread: ContactThread; onPress: () => void }) {
+  const isBot = thread.contact.phone === "+10000000000";
+  const lastConv = thread.conversations[0];
+  const timeAgo = formatTimeAgo(thread.lastActivityAt);
+  const lastMsg = lastConv?.lastMessage?.content || "No messages yet";
+  const totalUnread = thread.conversations.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className={`flex-row items-center px-5 py-3.5 border-b border-gray-50 ${isBot ? "bg-gray-50/50" : ""}`}
+      activeOpacity={0.6}
+    >
+      {/* Avatar */}
+      {isBot ? (
+        <View className="w-12 h-12 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.primary }}>
+          <Ionicons name="sparkles" size={20} color={colors.white} />
+        </View>
+      ) : (
+        <View className="mr-3">
+          <Avatar
+            firstName={thread.contact.firstName}
+            lastName={thread.contact.lastName}
+            size="md"
+            isOnline={thread.contact.isOnline}
+          />
+        </View>
+      )}
+
+      {/* Content */}
+      <View className="flex-1 min-w-0">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center flex-1 mr-2">
+            <Text className="text-[15px] font-semibold text-gray-900" numberOfLines={1}>
+              {thread.contact.firstName} {thread.contact.lastName}
+            </Text>
+            {/* Thread count badge */}
+            {thread.threadCount > 1 && (
+              <View className="ml-1.5 w-5 h-5 rounded-full bg-gray-200 items-center justify-center">
+                <Text className="text-[10px] font-bold text-gray-600">{thread.threadCount}</Text>
+              </View>
+            )}
+          </View>
+          <Text className="text-xs text-gray-400">{timeAgo}</Text>
+        </View>
+
+        <Text className="text-sm text-gray-500 mt-0.5" numberOfLines={1}>
+          {isBot ? "Your AI assistant" : lastMsg}
+        </Text>
+      </View>
+
+      {/* Unread badge or chevron */}
+      {totalUnread > 0 ? (
+        <View className="ml-2 min-w-[20px] h-5 rounded-full items-center justify-center px-1.5" style={{ backgroundColor: colors.primary }}>
+          <Text className="text-[10px] font-bold text-white">{totalUnread}</Text>
+        </View>
+      ) : thread.threadCount > 1 ? (
+        <Ionicons name="chevron-forward" size={14} color={colors.gray300} style={{ marginLeft: 8 }} />
+      ) : null}
+    </TouchableOpacity>
+  );
+}
+
 export default function MessagesScreen() {
   const [threads, setThreads] = useState<ContactThread[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCompose, setShowCompose] = useState(false);
+  const [contacts, setContacts] = useState<User[]>([]);
   const router = useRouter();
+  const currentUser = useAuthStore((s) => s.user);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -153,11 +104,42 @@ export default function MessagesScreen() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  async function handleCompose() {
+    try {
+      const data = await api.get("/connections");
+      const contactList = data.connections.map((c: Connection) =>
+        c.requesterId === currentUser?.id ? c.addressee : c.requester
+      ).filter(Boolean) as User[];
+      setContacts(contactList);
+      setShowCompose(true);
+    } catch {}
+  }
+
+  async function handleSelectContact(contactId: string) {
+    setShowCompose(false);
+    try {
+      const data = await api.post("/conversations/new-topic", { contactId });
+      router.push(`/(app)/messages/${data.conversation.id}` as any);
+    } catch {}
+  }
+
   async function handleNewOpportunity() {
     try {
       const data = await api.post("/conversations/bot-opportunity");
       router.push(`/(app)/messages/${data.conversationId}` as any);
     } catch {}
+  }
+
+  function handleThreadPress(thread: ContactThread) {
+    const isBot = thread.contact.phone === "+10000000000";
+
+    if (thread.threadCount === 1 && !isBot) {
+      // Single conversation, non-bot → go directly to chat
+      router.push(`/(app)/messages/${thread.conversations[0].id}` as any);
+    } else {
+      // Multiple conversations or bot → go to thread screen
+      router.push(`/(app)/messages/contact/${thread.contactId}` as any);
+    }
   }
 
   return (
@@ -174,7 +156,7 @@ export default function MessagesScreen() {
             <Ionicons name="bulb-outline" size={18} color={colors.gray700} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => {}}
+            onPress={handleCompose}
             className="w-9 h-9 rounded-full items-center justify-center border border-gray-200"
             activeOpacity={0.6}
           >
@@ -190,10 +172,7 @@ export default function MessagesScreen() {
         refreshing={loading}
         contentContainerStyle={threads.length === 0 && !loading ? { flex: 1 } : undefined}
         renderItem={({ item }) => (
-          <ThreadItem
-            thread={item}
-            onPressConversation={(id) => router.push(`/(app)/messages/${id}` as any)}
-          />
+          <ThreadRow thread={item} onPress={() => handleThreadPress(item)} />
         )}
         ListEmptyComponent={
           !loading ? (
@@ -211,6 +190,40 @@ export default function MessagesScreen() {
           ) : null
         }
       />
+
+      {/* Compose — contact picker */}
+      <Modal visible={showCompose} transparent animationType="fade">
+        <TouchableOpacity className="flex-1" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} activeOpacity={1} onPress={() => setShowCompose(false)}>
+          <View className="flex-1 justify-end">
+            <View className="bg-white rounded-t-3xl px-5 pt-5 pb-8" style={{ maxHeight: "60%" }}>
+              <Text className="text-lg font-bold text-gray-900 mb-4">New conversation</Text>
+              <FlatList
+                data={contacts}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    onPress={() => handleSelectContact(item.id)}
+                    className="flex-row items-center py-3 border-b border-gray-50"
+                    activeOpacity={0.6}
+                  >
+                    <Avatar firstName={item.firstName} lastName={item.lastName} size="sm" />
+                    <View className="flex-1 ml-3">
+                      <Text className="text-sm font-medium text-gray-900">{item.firstName} {item.lastName}</Text>
+                      {item.company && <Text className="text-xs text-gray-400">{(item.company as any).name || ""}</Text>}
+                    </View>
+                    <Ionicons name="chevron-forward" size={14} color={colors.gray300} />
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <View className="items-center py-8">
+                    <Text className="text-sm text-gray-400">No contacts yet. Add contacts from the Network tab.</Text>
+                  </View>
+                }
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }

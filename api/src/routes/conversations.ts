@@ -237,11 +237,11 @@ router.post("/group", async (req, res) => {
   }
 });
 
-// PATCH /conversations/:id — rename group
+// PATCH /conversations/:id — rename/set topic (any member)
 router.patch("/:id", async (req, res) => {
   try {
     const { name } = req.body;
-    const conversation = await prisma.conversation.findUnique({ where: { id: req.params.id } });
+    const conversation = await prisma.conversation.findUnique({ where: { id: req.params.id as string } });
     if (!conversation) { res.status(404).json({ error: "Conversation not found" }); return; }
 
     const isMember = await prisma.conversationMember.findUnique({
@@ -249,16 +249,50 @@ router.patch("/:id", async (req, res) => {
     });
     if (!isMember) { res.status(403).json({ error: "Not a member" }); return; }
 
-    if (conversation.createdById !== req.userId) { res.status(403).json({ error: "Only creator can rename" }); return; }
-
     const updated = await prisma.conversation.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { name },
       include: { members: { include: { user: { include: { company: true } } } } },
     });
     res.json({ conversation: updated });
   } catch (err) {
     res.status(500).json({ error: "Failed to rename conversation" });
+  }
+});
+
+// POST /conversations/new-topic — create new DIRECT conversation with a contact
+router.post("/new-topic", async (req, res) => {
+  try {
+    const { contactId, name } = req.body;
+    if (!contactId) { res.status(400).json({ error: "contactId is required" }); return; }
+
+    // Verify connection exists
+    const connection = await prisma.connection.findFirst({
+      where: {
+        status: "ACCEPTED",
+        OR: [
+          { requesterId: req.userId, addresseeId: contactId },
+          { requesterId: contactId, addresseeId: req.userId },
+        ],
+      },
+    });
+    if (!connection) { res.status(400).json({ error: "You must be connected to start a conversation" }); return; }
+
+    const conversation = await prisma.conversation.create({
+      data: {
+        type: "DIRECT",
+        topic: "GENERAL",
+        name: name || null,
+        createdById: req.userId!,
+        members: { create: [{ userId: req.userId! }, { userId: contactId }] },
+      },
+      include: { members: { include: { user: { include: { company: true } } } } },
+    });
+
+    res.status(201).json({ conversation });
+  } catch (err) {
+    console.error("New topic error:", err);
+    res.status(500).json({ error: "Failed to create conversation" });
   }
 });
 

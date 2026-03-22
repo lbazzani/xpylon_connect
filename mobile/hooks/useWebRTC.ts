@@ -1,13 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import {
-  RTCPeerConnection,
-  RTCSessionDescription,
-  RTCIceCandidate,
-  mediaDevices,
-  MediaStream,
-} from "react-native-webrtc";
-import InCallManager from "react-native-incall-manager";
 import type { CallType, WsClientEvent } from "@xpylon/shared";
+
+// WebRTC modules are disabled for Expo Go compatibility.
+// In a dev build, replace these with actual imports from react-native-webrtc.
+// To enable: uncomment the imports below and remove the null declarations.
+// import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, mediaDevices } from "react-native-webrtc";
+// import InCallManager from "react-native-incall-manager";
+
+const RTCPeerConnection: any = null;
+const RTCSessionDescription: any = null;
+const RTCIceCandidate: any = null;
+const mediaDevices: any = null;
+const InCallManager: any = null;
 
 const ICE_CONFIG = {
   iceServers: [
@@ -23,9 +27,11 @@ interface UseWebRTCOptions {
   send: (event: WsClientEvent) => void;
 }
 
+const isWebRTCAvailable = !!RTCPeerConnection;
+
 export function useWebRTC({ callId, callType, isInitiator, send }: UseWebRTCOptions) {
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [localStream, setLocalStream] = useState<any>(null);
+  const [remoteStream, setRemoteStream] = useState<any>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -37,6 +43,10 @@ export function useWebRTC({ callId, callType, isInitiator, send }: UseWebRTCOpti
   const remoteDescSetRef = useRef(false);
 
   const acquireMedia = useCallback(async () => {
+    if (!isWebRTCAvailable || !mediaDevices) {
+      console.warn("WebRTC not available (Expo Go). Calls require a development build.");
+      return null as any;
+    }
     const constraints: any = {
       audio: true,
       video: callType === "VIDEO" ? { facingMode: "user", width: 640, height: 480 } : false,
@@ -48,7 +58,8 @@ export function useWebRTC({ callId, callType, isInitiator, send }: UseWebRTCOpti
   }, [callType]);
 
   const createPeerConnection = useCallback(
-    (stream: MediaStream) => {
+    (stream: any) => {
+      if (!RTCPeerConnection) return null as any;
       const pc = new RTCPeerConnection(ICE_CONFIG);
       pcRef.current = pc;
 
@@ -108,12 +119,10 @@ export function useWebRTC({ callId, callType, isInitiator, send }: UseWebRTCOpti
       const pc = createPeerConnection(stream);
 
       // Start InCallManager
-      InCallManager.start({ media: callType === "VIDEO" ? "video" : "audio" });
-      if (callType === "VOICE") {
-        InCallManager.setSpeakerphoneOn(false);
-      } else {
-        InCallManager.setSpeakerphoneOn(true);
-        setIsSpeakerOn(true);
+      if (InCallManager) {
+        InCallManager.start({ media: callType === "VIDEO" ? "video" : "audio" });
+        InCallManager.setSpeakerphoneOn(callType === "VIDEO");
+        if (callType === "VIDEO") setIsSpeakerOn(true);
       }
 
       const offer = await pc.createOffer({
@@ -142,12 +151,10 @@ export function useWebRTC({ callId, callType, isInitiator, send }: UseWebRTCOpti
         const pc = pcRef.current || createPeerConnection(stream);
 
         // Start InCallManager
-        InCallManager.start({ media: callType === "VIDEO" ? "video" : "audio" });
-        if (callType === "VOICE") {
-          InCallManager.setSpeakerphoneOn(false);
-        } else {
-          InCallManager.setSpeakerphoneOn(true);
-          setIsSpeakerOn(true);
+        if (InCallManager) {
+          InCallManager.start({ media: callType === "VIDEO" ? "video" : "audio" });
+          InCallManager.setSpeakerphoneOn(callType === "VIDEO");
+          if (callType === "VIDEO") setIsSpeakerOn(true);
         }
 
         const offer = new RTCSessionDescription(JSON.parse(sdp));
@@ -219,7 +226,7 @@ export function useWebRTC({ callId, callType, isInitiator, send }: UseWebRTCOpti
 
   const toggleSpeaker = useCallback(() => {
     setIsSpeakerOn((prev) => {
-      InCallManager.setSpeakerphoneOn(!prev);
+      if (InCallManager) InCallManager.setSpeakerphoneOn(!prev);
       return !prev;
     });
   }, []);
@@ -261,7 +268,7 @@ export function useWebRTC({ callId, callType, isInitiator, send }: UseWebRTCOpti
     setIsSpeakerOn(false);
     setIsVideoEnabled(true);
     setConnectionState("new");
-    InCallManager.stop();
+    if (InCallManager) InCallManager.stop();
   }, []);
 
   // Cleanup on unmount

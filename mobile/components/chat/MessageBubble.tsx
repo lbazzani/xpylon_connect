@@ -16,6 +16,7 @@ interface MessageBubbleProps {
   onReply?: (message: Message) => void;
   onDelete?: (messageId: string) => void;
   onViewOpportunity?: (id: string) => void;
+  onSetTopic?: (topic: string) => void;
 }
 
 function formatFileSize(bytes: number): string {
@@ -109,7 +110,7 @@ function renderFormattedText(text: string, isOwn: boolean) {
   });
 }
 
-export function MessageBubble({ message, isOwn, showSenderName, senderColor, onReply, onDelete, onViewOpportunity }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, showSenderName, senderColor, onReply, onDelete, onViewOpportunity, onSetTopic }: MessageBubbleProps) {
   const time = new Date(message.createdAt).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -123,6 +124,13 @@ export function MessageBubble({ message, isOwn, showSenderName, senderColor, onR
   const hasOppMarkers = message.content?.includes("[OPP:") || false;
   const contentParts = hasOppMarkers && message.content
     ? parseOpportunityMarkers(message.content)
+    : null;
+
+  // Check for SET_TOPIC marker
+  const topicMatch = message.content?.match(/\[SET_TOPIC:([^\]]+)\]/);
+  const suggestedTopic = topicMatch?.[1];
+  const cleanContentForTopic = suggestedTopic
+    ? message.content!.replace(/\n*\[SET_TOPIC:[^\]]+\]/, "").trim()
     : null;
 
   const getReceiptIcon = () => {
@@ -172,6 +180,37 @@ export function MessageBubble({ message, isOwn, showSenderName, senderColor, onR
         { text: "Cancel", style: "cancel" },
       ]);
     }
+  }
+
+  // Special rendering for SET_TOPIC suggestions
+  if (suggestedTopic && message.type === "SYSTEM") {
+    return (
+      <View className="mb-2 mx-4 self-center max-w-[90%]">
+        <View className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="chatbubble-ellipses-outline" size={16} color="#3B82F6" />
+            <Text className="text-sm font-semibold text-blue-800 ml-2">Topic suggestion</Text>
+          </View>
+          <Text className="text-sm text-blue-700 leading-5 mb-3">{cleanContentForTopic}</Text>
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              onPress={() => onSetTopic?.(suggestedTopic)}
+              className="flex-1 py-2 rounded-lg items-center"
+              style={{ backgroundColor: "#3B82F6" }}
+              activeOpacity={0.7}
+            >
+              <Text className="text-white font-semibold text-sm">Set as topic</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 py-2 rounded-lg items-center border border-blue-200"
+              activeOpacity={0.7}
+            >
+              <Text className="text-blue-500 font-medium text-sm">Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
   }
 
   return (

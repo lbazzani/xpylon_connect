@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert, ActionSheetIOS, Platform } from "react-native";
 import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -73,6 +73,83 @@ export default function OpportunityDetailScreen() {
     }
   }
 
+  function handleAuthorMenu() {
+    const isPaused = opp?.status === "PAUSED";
+    const options = [
+      isPaused ? "Resume" : "Pause",
+      "Close opportunity",
+      "Delete",
+      "Cancel",
+    ];
+    const destructiveIndex = 2;
+    const cancelIndex = 3;
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: cancelIndex, destructiveButtonIndex: destructiveIndex },
+        async (index) => {
+          if (index === 0) {
+            // Pause/Resume
+            try {
+              await api.patch(`/opportunities/${id}/status`, { status: isPaused ? "ACTIVE" : "PAUSED" });
+              loadData();
+            } catch (err) {
+              Alert.alert("Error", "Failed to update status");
+            }
+          } else if (index === 1) {
+            // Close
+            Alert.alert("Close opportunity", "This opportunity will no longer be visible. Are you sure?", [
+              { text: "Cancel", style: "cancel" },
+              { text: "Close", style: "destructive", onPress: async () => {
+                try {
+                  await api.patch(`/opportunities/${id}/status`, { status: "CLOSED" });
+                  loadData();
+                } catch { Alert.alert("Error", "Failed to close"); }
+              }},
+            ]);
+          } else if (index === 2) {
+            // Delete
+            Alert.alert("Delete opportunity", "This action cannot be undone.", [
+              { text: "Cancel", style: "cancel" },
+              { text: "Delete", style: "destructive", onPress: async () => {
+                try {
+                  await api.delete(`/opportunities/${id}`);
+                  router.back();
+                } catch { Alert.alert("Error", "Failed to delete"); }
+              }},
+            ]);
+          }
+        }
+      );
+    } else {
+      Alert.alert("Manage opportunity", undefined, [
+        { text: isPaused ? "Resume" : "Pause", onPress: async () => {
+          try {
+            await api.patch(`/opportunities/${id}/status`, { status: isPaused ? "ACTIVE" : "PAUSED" });
+            loadData();
+          } catch { Alert.alert("Error", "Failed to update status"); }
+        }},
+        { text: "Close", onPress: () => {
+          Alert.alert("Close opportunity", "This opportunity will no longer be visible.", [
+            { text: "Cancel", style: "cancel" },
+            { text: "Close", style: "destructive", onPress: async () => {
+              try { await api.patch(`/opportunities/${id}/status`, { status: "CLOSED" }); loadData(); } catch {}
+            }},
+          ]);
+        }},
+        { text: "Delete", style: "destructive", onPress: () => {
+          Alert.alert("Delete opportunity", "This action cannot be undone.", [
+            { text: "Cancel", style: "cancel" },
+            { text: "Delete", style: "destructive", onPress: async () => {
+              try { await api.delete(`/opportunities/${id}`); router.back(); } catch {}
+            }},
+          ]);
+        }},
+        { text: "Cancel", style: "cancel" },
+      ]);
+    }
+  }
+
   async function handleSave() {
     try {
       if (opp.isSaved) {
@@ -103,7 +180,7 @@ export default function OpportunityDetailScreen() {
         </TouchableOpacity>
         <View className="flex-1" />
         {isAuthor && (
-          <TouchableOpacity onPress={() => {}} className="p-2">
+          <TouchableOpacity onPress={handleAuthorMenu} className="p-2">
             <Ionicons name="ellipsis-horizontal" size={20} color={colors.gray600} />
           </TouchableOpacity>
         )}
@@ -228,14 +305,15 @@ export default function OpportunityDetailScreen() {
         </View>
       )}
 
-      {isAuthor && (
+      {isAuthor && (opp.interestedCount || 0) > 0 && (
         <View className="px-5 py-4 border-t border-gray-100 bg-white">
           <TouchableOpacity
-            onPress={() => {}}
-            className="h-12 rounded-xl border border-gray-200 items-center justify-center"
+            onPress={() => router.push(`/(app)/opportunities/interested?id=${id}` as any)}
+            className="h-12 rounded-xl border border-gray-200 items-center justify-center flex-row"
             activeOpacity={0.6}
           >
-            <Text className="font-medium text-sm text-gray-700">Manage interested ({opp.interestedCount || 0})</Text>
+            <Ionicons name="people-outline" size={16} color={colors.gray700} />
+            <Text className="font-medium text-sm text-gray-700 ml-2">Manage interested ({opp.interestedCount || 0})</Text>
           </TouchableOpacity>
         </View>
       )}

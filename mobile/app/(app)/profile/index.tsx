@@ -25,7 +25,7 @@ export default function ProfileScreen() {
   const menuItems = [
     { label: "Edit profile", subtitle: "Update your information", iconName: "create-outline" as const, color: colors.primary, onPress: () => router.push("/(app)/profile/edit" as any) },
     { label: "My company", subtitle: user.company?.name || "Add company details", iconName: "business-outline" as const, color: colors.blue, onPress: () => router.push("/(app)/profile/edit" as any) },
-    { label: "Notifications", subtitle: "Manage your preferences", iconName: "notifications-outline" as const, color: colors.green, onPress: () => Alert.alert("Coming soon", "Notification preferences will be available in a future update.") },
+    { label: "Notifications", subtitle: "Manage your preferences", iconName: "notifications-outline" as const, color: colors.green, onPress: () => Linking.openSettings() },
     { label: "Privacy policy", subtitle: "How we handle your data", iconName: "shield-outline" as const, color: colors.gray500, onPress: () => {
       const baseUrl = (process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000").replace(/\/+$/, "");
       Linking.openURL(`${baseUrl}/privacy`);
