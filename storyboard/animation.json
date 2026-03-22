@@ -1,16 +1,20 @@
 {
-  "version": 1,
+  "version": 2,
   "appName": "Xpylon Connect",
   "defaults": {
     "entrance": "fade-up",
     "iconEffect": "float",
     "staggerDelay": 100,
-    "transitionDuration": 400
+    "transitionDuration": 400,
+    "exitDuration": 250,
+    "enterDelay": 150,
+    "featureItemStagger": 80
   },
   "slides": [
     {
       "id": "welcome",
       "category": "intro",
+      "heroType": "logo-reveal",
       "iconComposition": { "primary": "business-outline" },
       "useLogoImage": true,
       "tagline": "WELCOME TO",
@@ -26,6 +30,7 @@
     {
       "id": "ai-onboarding",
       "category": "feature",
+      "heroType": "chat-sequence",
       "iconComposition": { "primary": "sparkles-outline", "accent": "chatbubble-ellipses-outline", "badge": "AI" },
       "tagline": "AI-POWERED ONBOARDING",
       "title": "Your personal networking assistant",
@@ -40,6 +45,7 @@
     {
       "id": "smart-matching",
       "category": "feature",
+      "heroType": "connection-web",
       "iconComposition": { "primary": "analytics-outline", "accent": "people-outline" },
       "tagline": "SMART MATCHING",
       "title": "Find the right people, automatically",
@@ -54,6 +60,7 @@
     {
       "id": "privacy",
       "category": "feature",
+      "heroType": "shield-lock",
       "iconComposition": { "primary": "shield-checkmark-outline", "accent": "eye-off-outline" },
       "tagline": "PRIVACY-FIRST",
       "title": "Your identity, your rules",
@@ -68,6 +75,7 @@
     {
       "id": "chat",
       "category": "feature",
+      "heroType": "chat-mockup",
       "iconComposition": { "primary": "chatbubbles-outline", "accent": "checkmark-done-outline" },
       "tagline": "PROFESSIONAL CHAT",
       "title": "Messaging built for business",
@@ -82,6 +90,7 @@
     {
       "id": "calls",
       "category": "feature",
+      "heroType": "call-rings",
       "iconComposition": { "primary": "videocam-outline", "accent": "call-outline" },
       "tagline": "VOICE & VIDEO",
       "title": "Connect face to face, anywhere",
@@ -96,6 +105,7 @@
     {
       "id": "opportunities",
       "category": "feature",
+      "heroType": "card-stack",
       "iconComposition": { "primary": "bulb-outline", "accent": "briefcase-outline" },
       "tagline": "OPPORTUNITIES",
       "title": "Create, discover, and manage deals",
@@ -110,6 +120,7 @@
     {
       "id": "get-started",
       "category": "cta",
+      "heroType": "spark-burst",
       "iconComposition": { "primary": "rocket-outline" },
       "tagline": "READY?",
       "title": "Your next connection is a conversation away",

@@ -1,9 +1,16 @@
 import { View, Modal } from "react-native";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  Easing,
+  runOnJS,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSharedValue } from "react-native-reanimated";
 import { TourSlide } from "./TourSlide";
-import { TourProgressSimple } from "./TourProgress";
+import { TourProgressBar } from "./TourProgress";
 import { TourNavigation } from "./TourNavigation";
 import type { AnimationConfig, TourMode } from "./types";
 import animationData from "../../../storyboard/animation.json";
@@ -20,35 +27,84 @@ interface ProductTourProps {
 export function ProductTour({ mode, onDismiss, onDismissForever, visible = true }: ProductTourProps) {
   const slides = data.slides;
   const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollX = useSharedValue(0); // kept for type compat
+  const [transitioning, setTransitioning] = useState(false);
+
+  // Slide transition animation
+  const slideOpacity = useSharedValue(1);
+  const slideScale = useSharedValue(1);
+  const slideTranslateY = useSharedValue(0);
+
+  const exitDuration = data.defaults.exitDuration || 250;
+  const enterDuration = data.defaults.transitionDuration || 400;
+  const enterDelay = data.defaults.enterDelay || 150;
+
+  const swapIndex = useCallback((newIndex: number) => {
+    setCurrentIndex(newIndex);
+    setTransitioning(false);
+
+    // Enter animation
+    slideOpacity.value = 0;
+    slideScale.value = 0.97;
+    slideTranslateY.value = -12;
+
+    slideOpacity.value = withDelay(
+      enterDelay,
+      withTiming(1, { duration: enterDuration, easing: Easing.out(Easing.cubic) })
+    );
+    slideScale.value = withDelay(
+      enterDelay,
+      withTiming(1, { duration: enterDuration, easing: Easing.out(Easing.cubic) })
+    );
+    slideTranslateY.value = withDelay(
+      enterDelay,
+      withTiming(0, { duration: enterDuration, easing: Easing.out(Easing.cubic) })
+    );
+  }, [enterDelay, enterDuration]);
 
   const handleNext = useCallback(() => {
-    if (currentIndex < slides.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-    }
-  }, [currentIndex, slides.length]);
+    if (transitioning || currentIndex >= slides.length - 1) return;
+    const nextIdx = currentIndex + 1;
+    setTransitioning(true);
 
-  const handlePrev = useCallback(() => {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
-  }, [currentIndex]);
+    // Exit animation
+    slideOpacity.value = withTiming(0, {
+      duration: exitDuration,
+      easing: Easing.in(Easing.cubic),
+    }, () => {
+      runOnJS(swapIndex)(nextIdx);
+    });
+    slideScale.value = withTiming(0.97, {
+      duration: exitDuration,
+      easing: Easing.in(Easing.cubic),
+    });
+    slideTranslateY.value = withTiming(12, {
+      duration: exitDuration,
+      easing: Easing.in(Easing.cubic),
+    });
+  }, [currentIndex, slides.length, transitioning, exitDuration, swapIndex]);
+
+  const slideAnimStyle = useAnimatedStyle(() => ({
+    opacity: slideOpacity.value,
+    transform: [
+      { scale: slideScale.value },
+      { translateY: slideTranslateY.value },
+    ],
+  }));
 
   const content = (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Current slide */}
-      <View className="flex-1">
+      {/* Slide content */}
+      <Animated.View style={[{ flex: 1 }, slideAnimStyle]}>
         <TourSlide
           key={slides[currentIndex].id}
           slide={slides[currentIndex]}
           index={currentIndex}
-          scrollX={scrollX}
-          isActive={true}
+          isActive={!transitioning}
         />
-      </View>
+      </Animated.View>
 
-      {/* Progress dots */}
-      <TourProgressSimple total={slides.length} active={currentIndex} />
+      {/* Progress bar */}
+      <TourProgressBar total={slides.length} active={currentIndex} />
 
       {/* Navigation */}
       <TourNavigation
@@ -58,6 +114,7 @@ export function ProductTour({ mode, onDismiss, onDismissForever, visible = true 
         onNext={handleNext}
         onDismiss={onDismiss}
         onDismissForever={onDismissForever || onDismiss}
+        disabled={transitioning}
       />
     </SafeAreaView>
   );

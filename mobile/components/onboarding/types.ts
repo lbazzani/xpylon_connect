@@ -10,6 +10,16 @@ export interface SlideIconComposition {
   badge?: string;
 }
 
+export type SlideHeroType =
+  | "logo-reveal"
+  | "chat-sequence"
+  | "connection-web"
+  | "shield-lock"
+  | "chat-mockup"
+  | "call-rings"
+  | "card-stack"
+  | "spark-burst";
+
 export interface SlideAnimation {
   entrance: "fade-up" | "fade-in" | "scale-in";
   iconEffect?: "pulse" | "float" | "none";
@@ -19,6 +29,7 @@ export interface SlideAnimation {
 export interface Slide {
   id: string;
   category: "intro" | "feature" | "cta";
+  heroType?: SlideHeroType;
   iconComposition: SlideIconComposition;
   useLogoImage?: boolean;
   tagline?: string;
@@ -36,6 +47,9 @@ export interface AnimationConfig {
     iconEffect: string;
     staggerDelay: number;
     transitionDuration: number;
+    exitDuration: number;
+    enterDelay: number;
+    featureItemStagger: number;
   };
   slides: Slide[];
 }

@@ -5,94 +5,134 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withDelay,
+  withSpring,
+  Easing,
+  cancelAnimation,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { SlideIcons } from "./SlideIcons";
+import { SlideHero } from "./heroes/SlideHero";
 import { colors } from "../../lib/theme";
 import type { Slide } from "./types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const FEATURE_STAGGER = 80;
 
 interface TourSlideProps {
   slide: Slide;
   index: number;
-  scrollX: Animated.SharedValue<number>;
   isActive: boolean;
 }
 
-export function TourSlide({ slide, index, scrollX, isActive }: TourSlideProps) {
-  const stagger = slide.animation?.staggerDelay || 100;
-  const dur = 450;
-
-  const iconOpacity = useSharedValue(0);
-  const iconScale = useSharedValue(0.8);
-  const taglineOpacity = useSharedValue(0);
-  const taglineY = useSharedValue(16);
-  const titleOpacity = useSharedValue(0);
-  const titleY = useSharedValue(16);
-  const subtitleOpacity = useSharedValue(0);
-  const subtitleY = useSharedValue(16);
-  const featuresOpacity = useSharedValue(0);
-  const featuresY = useSharedValue(16);
+function useStaggerAnimation(isActive: boolean, delay: number) {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(16);
 
   useEffect(() => {
     if (isActive) {
-      iconOpacity.value = withTiming(1, { duration: dur });
-      iconScale.value = withTiming(1, { duration: dur });
-      taglineOpacity.value = withDelay(stagger * 1, withTiming(1, { duration: dur }));
-      taglineY.value = withDelay(stagger * 1, withTiming(0, { duration: dur }));
-      titleOpacity.value = withDelay(stagger * 2, withTiming(1, { duration: dur }));
-      titleY.value = withDelay(stagger * 2, withTiming(0, { duration: dur }));
-      subtitleOpacity.value = withDelay(stagger * 3, withTiming(1, { duration: dur }));
-      subtitleY.value = withDelay(stagger * 3, withTiming(0, { duration: dur }));
-      featuresOpacity.value = withDelay(stagger * 4, withTiming(1, { duration: dur }));
-      featuresY.value = withDelay(stagger * 4, withTiming(0, { duration: dur }));
+      opacity.value = withDelay(delay, withTiming(1, { duration: 450 }));
+      translateY.value = withDelay(delay, withTiming(0, { duration: 450, easing: Easing.out(Easing.cubic) }));
     } else {
-      iconOpacity.value = 0;
-      iconScale.value = 0.8;
-      taglineOpacity.value = 0; taglineY.value = 16;
-      titleOpacity.value = 0; titleY.value = 16;
-      subtitleOpacity.value = 0; subtitleY.value = 16;
-      featuresOpacity.value = 0; featuresY.value = 16;
+      cancelAnimation(opacity);
+      cancelAnimation(translateY);
+      opacity.value = 0;
+      translateY.value = 16;
     }
-  }, [isActive]);
+    return () => {
+      cancelAnimation(opacity);
+      cancelAnimation(translateY);
+    };
+  }, [isActive, delay]);
 
-  const iconStyle = useAnimatedStyle(() => ({
-    opacity: iconOpacity.value,
+  return useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+}
+
+function FeatureItem({
+  icon,
+  title,
+  description,
+  isActive,
+  delay,
+}: {
+  icon: string;
+  title: string;
+  description: string;
+  isActive: boolean;
+  delay: number;
+}) {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(12);
+  const iconScale = useSharedValue(0.7);
+
+  useEffect(() => {
+    if (isActive) {
+      opacity.value = withDelay(
+        delay,
+        withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) })
+      );
+      translateY.value = withDelay(
+        delay,
+        withTiming(0, { duration: 350, easing: Easing.bezierFn(0.34, 1.56, 0.64, 1) })
+      );
+      iconScale.value = withDelay(
+        delay + 50,
+        withSpring(1, { damping: 10, stiffness: 150 })
+      );
+    } else {
+      cancelAnimation(opacity);
+      cancelAnimation(translateY);
+      cancelAnimation(iconScale);
+      opacity.value = 0;
+      translateY.value = 12;
+      iconScale.value = 0.7;
+    }
+    return () => {
+      cancelAnimation(opacity);
+      cancelAnimation(translateY);
+      cancelAnimation(iconScale);
+    };
+  }, [isActive, delay]);
+
+  const rowStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  const iconAnimStyle = useAnimatedStyle(() => ({
     transform: [{ scale: iconScale.value }],
   }));
 
-  const taglineStyle = useAnimatedStyle(() => ({
-    opacity: taglineOpacity.value,
-    transform: [{ translateY: taglineY.value }],
-  }));
+  return (
+    <Animated.View style={rowStyle} className="flex-row items-start mb-3 px-2">
+      <Animated.View
+        style={iconAnimStyle}
+        className="w-9 h-9 rounded-xl bg-gray-50 items-center justify-center mr-3 mt-0.5"
+      >
+        <Ionicons name={icon as any} size={18} color={colors.gray500} />
+      </Animated.View>
+      <View className="flex-1">
+        <Text className="text-sm font-semibold text-gray-900">{title}</Text>
+        <Text className="text-xs text-gray-400 mt-0.5 leading-4">{description}</Text>
+      </View>
+    </Animated.View>
+  );
+}
 
-  const titleStyle = useAnimatedStyle(() => ({
-    opacity: titleOpacity.value,
-    transform: [{ translateY: titleY.value }],
-  }));
+export function TourSlide({ slide, index, isActive }: TourSlideProps) {
+  const stagger = slide.animation?.staggerDelay || 100;
 
-  const subtitleStyle = useAnimatedStyle(() => ({
-    opacity: subtitleOpacity.value,
-    transform: [{ translateY: subtitleY.value }],
-  }));
+  const taglineStyle = useStaggerAnimation(isActive, stagger * 1);
+  const titleStyle = useStaggerAnimation(isActive, stagger * 2);
+  const subtitleStyle = useStaggerAnimation(isActive, stagger * 3);
 
-  const featuresStyle = useAnimatedStyle(() => ({
-    opacity: featuresOpacity.value,
-    transform: [{ translateY: featuresY.value }],
-  }));
+  const featuresBaseDelay = stagger * 4;
 
   return (
     <View style={{ width: SCREEN_WIDTH }} className="flex-1 px-8 justify-center items-center">
-      {/* Icon */}
-      <Animated.View style={iconStyle}>
-        <SlideIcons
-          composition={slide.iconComposition}
-          useLogoImage={slide.useLogoImage}
-          effect={slide.animation?.iconEffect || "float"}
-          isActive={isActive}
-        />
-      </Animated.View>
+      {/* Hero visual */}
+      <SlideHero heroType={slide.heroType} isActive={isActive} />
 
       {/* Tagline */}
       {slide.tagline && (
@@ -120,21 +160,20 @@ export function TourSlide({ slide, index, scrollX, isActive }: TourSlideProps) {
         {slide.subtitle}
       </Animated.Text>
 
-      {/* Features */}
+      {/* Features — individually staggered */}
       {slide.features && slide.features.length > 0 && (
-        <Animated.View style={featuresStyle} className="w-full" pointerEvents="none">
+        <View className="w-full" pointerEvents="none">
           {slide.features.map((feature, i) => (
-            <View key={i} className="flex-row items-start mb-3 px-2">
-              <View className="w-9 h-9 rounded-xl bg-gray-50 items-center justify-center mr-3 mt-0.5">
-                <Ionicons name={feature.icon as any} size={18} color={colors.gray500} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-gray-900">{feature.title}</Text>
-                <Text className="text-xs text-gray-400 mt-0.5 leading-4">{feature.description}</Text>
-              </View>
-            </View>
+            <FeatureItem
+              key={i}
+              icon={feature.icon}
+              title={feature.title}
+              description={feature.description}
+              isActive={isActive}
+              delay={featuresBaseDelay + i * FEATURE_STAGGER}
+            />
           ))}
-        </Animated.View>
+        </View>
       )}
     </View>
   );
