@@ -224,8 +224,9 @@ app/
 └── (app)/
     ├── messages/index|[id]       ← Conversations list + chat screen + call screen
     ├── network/index|[id]|imports ← Contacts + detail + card imports queue
+    ├── invite/[token]            ← Deep link invite acceptance
     ├── opportunities/index|[id]|new|review  ← Discover/Mine/Saved + detail + create form + admin review
-    └── profile/index             ← User profile
+    └── profile/index|edit        ← User profile + edit screen
 
 lib/
 ├── theme.ts                 ← Design system tokens (colors, fonts, spacing, shadows)
