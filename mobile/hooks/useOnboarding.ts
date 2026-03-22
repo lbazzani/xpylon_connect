@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-const KEY = "xpylon_tour_dismissed_v2";
+const KEY = "xpylon_tour_dismissed_v3";
 const isWeb = Platform.OS === "web";
 
 async function getItem(key: string): Promise<string | null> {
