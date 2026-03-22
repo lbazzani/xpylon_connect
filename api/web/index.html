@@ -198,6 +198,29 @@
       z-index: 1;
       position: relative;
     }
+    /* ── Hero Cinema ── */
+    @keyframes cursorBlink { 0%,100% { border-color: #F15A24; } 50% { border-color: transparent; } }
+    #typing-text { animation: cursorBlink 0.8s infinite; }
+
+    .hero-scene.scene-enter { opacity: 1 !important; }
+    .hero-scene.scene-exit { opacity: 0 !important; }
+
+    .noise-card.show { opacity: 1 !important; transform: translateY(0) !important; }
+    .noise-card.scatter { opacity: 0 !important; transform: translateX(var(--scatter-x)) translateY(-30px) scale(0.8) !important; filter: blur(2px); transition: all 0.5s ease !important; }
+
+    #match-card-hero.show { opacity: 1 !important; transform: scale(1) !important; box-shadow: 0 0 40px rgba(241,90,36,0.12), 0 8px 30px rgba(0,0,0,0.06); }
+
+    .hero-chat-msg.show { opacity: 1 !important; transform: translateY(0) !important; }
+
+    #brand-logo.show { opacity: 1 !important; transform: scale(1) !important; }
+    #brand-title.show { opacity: 1 !important; transform: translateY(0) !important; }
+    #brand-sub.show { opacity: 1 !important; transform: translateY(0) !important; }
+
+    @media (max-width: 639px) {
+      #hero-cinema { height: 340px !important; }
+      .noise-card { width: 160px !important; padding: 10px 12px !important; }
+      #match-card-hero { width: 260px !important; padding: 18px !important; }
+    }
   </style>
 </head>
 <body class="bg-white text-gray-900 antialiased">
@@ -215,17 +238,218 @@
     </div>
   </nav>
 
-  <!-- Hero -->
-  <section class="pt-32 pb-24 px-6">
-    <div class="max-w-4xl mx-auto text-center">
-      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 text-gray-900">Where business<br>relationships begin</h1>
-      <p class="text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">For professionals who find new partners, distributors, and investors for a living. The platform that connects you to the right people — and lets you take it from there.</p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+  <!-- Hero with cinematic animation -->
+  <section class="pt-28 sm:pt-32 pb-16 px-6">
+    <div class="max-w-3xl mx-auto">
+      <!-- Animation container -->
+      <div id="hero-cinema" style="position:relative;height:380px;overflow:hidden" class="sm:h-[420px]">
+
+        <!-- Scene 1: The Search -->
+        <div class="hero-scene" id="scene-search" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.6s ease">
+          <p class="text-sm text-gray-400 mb-6 font-medium">You do this every day.</p>
+          <div style="width:100%;max-width:480px;background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:10px">
+            <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <span id="typing-text" class="text-gray-800 text-base sm:text-lg font-medium" style="border-right:2px solid #F15A24;padding-right:2px"></span>
+          </div>
+          <p class="text-xs text-gray-300 mt-4">Searching across platforms, directories, contacts...</p>
+        </div>
+
+        <!-- Scene 2: The Noise -->
+        <div class="hero-scene" id="scene-noise" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.6s ease">
+          <div id="noise-cards" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:500px">
+            <div class="noise-card" style="background:#F3F4F6;border:1px solid #E5E7EB;border-radius:14px;padding:14px 18px;width:220px;opacity:0;transform:translateY(20px);transition:all 0.4s ease">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <div style="width:28px;height:28px;border-radius:50%;background:#E5E7EB"></div>
+                <div><div style="width:80px;height:8px;background:#D1D5DB;border-radius:4px"></div><div style="width:50px;height:6px;background:#E5E7EB;border-radius:4px;margin-top:4px"></div></div>
+              </div>
+              <p style="font-size:10px;color:#9CA3AF">Last active: 2 years ago</p>
+            </div>
+            <div class="noise-card" style="background:#F3F4F6;border:1px solid #E5E7EB;border-radius:14px;padding:14px 18px;width:220px;opacity:0;transform:translateY(20px);transition:all 0.4s ease 0.15s">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <div style="width:28px;height:28px;border-radius:50%;background:#E5E7EB"></div>
+                <div><div style="width:90px;height:8px;background:#D1D5DB;border-radius:4px"></div><div style="width:60px;height:6px;background:#E5E7EB;border-radius:4px;margin-top:4px"></div></div>
+              </div>
+              <p style="font-size:10px;color:#9CA3AF">No response</p>
+            </div>
+            <div class="noise-card" style="background:#F3F4F6;border:1px solid #E5E7EB;border-radius:14px;padding:14px 18px;width:220px;opacity:0;transform:translateY(20px);transition:all 0.4s ease 0.3s">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <div style="width:28px;height:28px;border-radius:50%;background:#E5E7EB"></div>
+                <div><div style="width:70px;height:8px;background:#D1D5DB;border-radius:4px"></div><div style="width:40px;height:6px;background:#E5E7EB;border-radius:4px;margin-top:4px"></div></div>
+              </div>
+              <p style="font-size:10px;color:#9CA3AF">Wrong industry</p>
+            </div>
+          </div>
+          <p class="text-lg sm:text-xl font-semibold text-gray-400 mt-8 text-center" id="noise-text" style="opacity:0;transition:opacity 0.5s ease">Hundreds of results. None that matter.</p>
+        </div>
+
+        <!-- Scene 3: The Match -->
+        <div class="hero-scene" id="scene-match" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.6s ease">
+          <div id="match-card-hero" style="background:white;border:1.5px solid #E5E7EB;border-radius:20px;padding:24px;width:300px;opacity:0;transform:scale(0.85);transition:all 0.5s cubic-bezier(0.175,0.885,0.32,1.275)">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+              <div style="width:44px;height:44px;border-radius:50%;background:#10B981;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:15px">EF</div>
+              <div>
+                <div style="font-size:15px;font-weight:600;color:#111827">Head of Distribution</div>
+                <div style="font-size:12px;color:#9CA3AF">FMCG & Retail · Europe</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#10B981;display:inline-block"></span><span style="font-size:11px;color:#10B981;font-weight:500">Active now</span></div>
+              <div style="font-size:18px;font-weight:800;color:#F15A24">92%</div>
+            </div>
+          </div>
+          <p class="text-xl sm:text-2xl font-bold text-gray-900 mt-8 text-center" id="match-text" style="opacity:0;transition:opacity 0.5s ease 0.3s">One match. The right one.</p>
+        </div>
+
+        <!-- Scene 4: The Conversation -->
+        <div class="hero-scene" id="scene-chat" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.6s ease">
+          <div style="width:100%;max-width:360px">
+            <div class="hero-chat-msg" style="opacity:0;transform:translateY(12px);transition:all 0.4s ease">
+              <div style="background:#F3F4F6;border-radius:16px 16px 16px 4px;padding:12px 16px;max-width:85%;margin-bottom:10px">
+                <p style="font-size:13px;color:#374151;line-height:1.5">I'm looking for a distribution partner for Southern Europe. Your profile looks like a perfect fit.</p>
+              </div>
+            </div>
+            <div class="hero-chat-msg" style="opacity:0;transform:translateY(12px);transition:all 0.4s ease 0.6s">
+              <div style="background:#F15A24;border-radius:16px 16px 4px 16px;padding:12px 16px;max-width:80%;margin-left:auto;margin-bottom:10px">
+                <p style="font-size:13px;color:white;line-height:1.5">Sounds great — let's set up a call for Thursday?</p>
+              </div>
+            </div>
+            <div class="hero-chat-msg" style="opacity:0;transform:translateY(12px);transition:all 0.4s ease 1.2s;display:flex;justify-content:center;margin-top:8px">
+              <div style="display:flex;align-items:center;gap:8px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:24px;padding:8px 20px">
+                <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                <span style="font-size:12px;font-weight:600;color:#F15A24">Schedule call</span>
+              </div>
+            </div>
+          </div>
+          <p class="text-lg sm:text-xl font-semibold text-gray-500 mt-6 text-center" id="chat-text" style="opacity:0;transition:opacity 0.5s ease 1.5s">From introduction to meeting — in minutes.</p>
+        </div>
+
+        <!-- Scene 5: The Brand -->
+        <div class="hero-scene" id="scene-brand" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.6s ease">
+          <img src="/assets/logo.png" alt="Xpylon Connect" id="brand-logo" style="height:48px;opacity:0;transform:scale(0.7);transition:all 0.6s cubic-bezier(0.175,0.885,0.32,1.275)">
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 mt-6 text-center" id="brand-title" style="opacity:0;transform:translateY(10px);transition:all 0.5s ease 0.3s">Where business<br>relationships begin</h1>
+          <p class="text-base sm:text-lg text-gray-500 mt-4 text-center max-w-lg" id="brand-sub" style="opacity:0;transform:translateY(10px);transition:all 0.5s ease 0.5s">For professionals who grow their business through relationships.</p>
+        </div>
+      </div>
+
+      <!-- CTAs (always visible below animation) -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
         <a href="/install" class="gradient-accent text-white font-semibold px-8 py-3.5 rounded-full text-center hover:opacity-90 transition">Get started free</a>
         <a href="#story" class="border border-gray-200 text-gray-700 font-medium px-8 py-3.5 rounded-full text-center hover:bg-gray-50 transition">Read our story</a>
       </div>
     </div>
   </section>
+
+  <script>
+  // ── Hero Cinema Engine ──
+  (function() {
+    const SCENE_IDS = ['scene-search', 'scene-noise', 'scene-match', 'scene-chat', 'scene-brand'];
+    const DURATIONS = [3500, 3000, 3000, 4000, 3500]; // ms per scene
+    let currentScene = -1;
+    let typingTimer = null;
+
+    function hideAllScenes() {
+      SCENE_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.remove('scene-enter'); el.classList.add('scene-exit'); }
+      });
+    }
+
+    function resetScene(id) {
+      if (id === 'scene-search') {
+        const t = document.getElementById('typing-text');
+        if (t) t.textContent = '';
+      } else if (id === 'scene-noise') {
+        document.querySelectorAll('.noise-card').forEach(c => { c.classList.remove('show', 'scatter'); });
+        const nt = document.getElementById('noise-text');
+        if (nt) nt.style.opacity = '0';
+      } else if (id === 'scene-match') {
+        const mc = document.getElementById('match-card-hero');
+        if (mc) mc.classList.remove('show');
+        const mt = document.getElementById('match-text');
+        if (mt) mt.style.opacity = '0';
+      } else if (id === 'scene-chat') {
+        document.querySelectorAll('.hero-chat-msg').forEach(m => m.classList.remove('show'));
+        const ct = document.getElementById('chat-text');
+        if (ct) ct.style.opacity = '0';
+      } else if (id === 'scene-brand') {
+        ['brand-logo', 'brand-title', 'brand-sub'].forEach(eid => {
+          const e = document.getElementById(eid);
+          if (e) e.classList.remove('show');
+        });
+      }
+    }
+
+    function playScene(id) {
+      if (id === 'scene-search') {
+        // Typing animation
+        const text = 'distributor automotive Europe';
+        const el = document.getElementById('typing-text');
+        let i = 0;
+        if (typingTimer) clearInterval(typingTimer);
+        typingTimer = setInterval(() => {
+          if (i <= text.length) { el.textContent = text.substring(0, i); i++; }
+          else clearInterval(typingTimer);
+        }, 70);
+      } else if (id === 'scene-noise') {
+        // Cards appear then scatter
+        const cards = document.querySelectorAll('.noise-card');
+        setTimeout(() => cards.forEach(c => c.classList.add('show')), 100);
+        setTimeout(() => {
+          document.getElementById('noise-text').style.opacity = '1';
+        }, 800);
+        setTimeout(() => {
+          cards[0].style.setProperty('--scatter-x', '-60px');
+          cards[1].style.setProperty('--scatter-x', '20px');
+          cards[2].style.setProperty('--scatter-x', '70px');
+          cards.forEach(c => { c.classList.remove('show'); c.classList.add('scatter'); });
+        }, 2200);
+      } else if (id === 'scene-match') {
+        setTimeout(() => {
+          document.getElementById('match-card-hero').classList.add('show');
+          document.getElementById('match-text').style.opacity = '1';
+        }, 200);
+      } else if (id === 'scene-chat') {
+        const msgs = document.querySelectorAll('.hero-chat-msg');
+        msgs.forEach(m => m.classList.add('show'));
+        setTimeout(() => { document.getElementById('chat-text').style.opacity = '1'; }, 1800);
+      } else if (id === 'scene-brand') {
+        setTimeout(() => document.getElementById('brand-logo').classList.add('show'), 100);
+        setTimeout(() => document.getElementById('brand-title').classList.add('show'), 400);
+        setTimeout(() => document.getElementById('brand-sub').classList.add('show'), 600);
+      }
+    }
+
+    function advance() {
+      const prevScene = currentScene;
+      currentScene = (currentScene + 1) % SCENE_IDS.length;
+
+      // Hide previous
+      if (prevScene >= 0) {
+        const prevEl = document.getElementById(SCENE_IDS[prevScene]);
+        if (prevEl) prevEl.classList.remove('scene-enter');
+      }
+
+      // Reset and show current
+      const id = SCENE_IDS[currentScene];
+      resetScene(id);
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('scene-exit');
+        // Small delay to allow opacity transition
+        requestAnimationFrame(() => {
+          el.classList.add('scene-enter');
+          playScene(id);
+        });
+      }
+
+      // Schedule next
+      setTimeout(advance, DURATIONS[currentScene]);
+    }
+
+    // Start after a brief delay
+    setTimeout(advance, 500);
+  })();
+  </script>
 
   <!-- Story: scrolling narrative -->
   <section id="story">
