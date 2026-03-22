@@ -11,6 +11,8 @@ export interface SlideIconComposition {
 }
 
 export type SlideHeroType =
+  | "platform-fade"
+  | "people-handshake"
   | "logo-reveal"
   | "chat-sequence"
   | "connection-web"

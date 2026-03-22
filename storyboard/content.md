@@ -10,11 +10,37 @@
 
 ---
 
-## 1. Welcome
+## 0. The Problem
 
-**Tagline:** The intelligent B2B networking platform
+**Tagline:** The fundamental question
 
-**Description:** Xpylon Connect helps professionals find, connect, and collaborate with the right business contacts. Powered by AI, built for privacy, designed for results.
+**Description:** LinkedIn gives you visibility. Alibaba gives you catalogs. Trade fairs give you 4 days a year. None of them build the trust you need to close a deal.
+
+**Key points:**
+- LinkedIn is great for personal branding, not for closing deals
+- Online directories offer catalogs of companies, not relationships
+- Trade fairs give you a few days a year with no follow-up
+
+---
+
+## 0b. The Insight
+
+**Tagline:** The reality
+
+**Description:** Real business happens when a company in Lecco finds a distributor in Houston. When a German entrepreneur buys an Italian SME. When two strangers trust each other enough to sign a contract. People make it happen.
+
+**Key points:**
+- AI finds the right people. You build the relationship.
+- The value is in people. AI makes them faster.
+- Trust can't be automated — the handshake still matters.
+
+---
+
+## 1. Meet Xpylon Connect
+
+**Tagline:** The solution
+
+**Description:** An AI-powered platform that finds the right people, introduces them at the right time, and gets out of the way.
 
 **Key points:**
 - AI-guided onboarding gets you started in minutes

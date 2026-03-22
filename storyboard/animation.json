@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "appName": "Xpylon Connect",
   "defaults": {
     "entrance": "fade-up",
@@ -12,14 +12,44 @@
   },
   "slides": [
     {
+      "id": "the-problem",
+      "category": "intro",
+      "heroType": "platform-fade",
+      "iconComposition": { "primary": "help-outline" },
+      "tagline": "THE FUNDAMENTAL QUESTION",
+      "title": "The tools you're using weren't built for this",
+      "subtitle": "LinkedIn gives you visibility. Alibaba gives you catalogs. Trade fairs give you 4 days a year. None of them build the trust you need to close a deal.",
+      "features": [
+        { "icon": "logo-linkedin", "title": "LinkedIn", "description": "Great for personal branding, not for closing deals" },
+        { "icon": "globe-outline", "title": "Online directories", "description": "Catalogs of companies, not relationships" },
+        { "icon": "calendar-outline", "title": "Trade fairs", "description": "A few days a year, no follow-up" }
+      ],
+      "animation": { "entrance": "fade-up", "iconEffect": "none", "staggerDelay": 120 }
+    },
+    {
+      "id": "the-insight",
+      "category": "intro",
+      "heroType": "people-handshake",
+      "iconComposition": { "primary": "people-outline" },
+      "tagline": "THE REALITY",
+      "title": "AI doesn't close deals. People do.",
+      "subtitle": "Real business happens when a company in Lecco finds a distributor in Houston. When two strangers trust each other enough to sign a contract. People make it happen.",
+      "features": [
+        { "icon": "people-outline", "title": "People make it happen", "description": "AI finds the right people. You build the relationship." },
+        { "icon": "flash-outline", "title": "AI accelerates, not replaces", "description": "The value is in people. AI makes them faster." },
+        { "icon": "hand-right-outline", "title": "Trust can't be automated", "description": "The handshake still matters" }
+      ],
+      "animation": { "entrance": "fade-up", "iconEffect": "none", "staggerDelay": 100 }
+    },
+    {
       "id": "welcome",
       "category": "intro",
       "heroType": "logo-reveal",
       "iconComposition": { "primary": "business-outline" },
       "useLogoImage": true,
-      "tagline": "WELCOME TO",
-      "title": "Xpylon Connect",
-      "subtitle": "The intelligent B2B networking platform that helps you find, connect, and collaborate with the right professionals.",
+      "tagline": "THE SOLUTION",
+      "title": "Meet Xpylon Connect",
+      "subtitle": "An AI-powered platform that finds the right people, introduces them at the right time, and gets out of the way.",
       "features": [
         { "icon": "sparkles-outline", "title": "AI-guided onboarding", "description": "Get started in minutes" },
         { "icon": "analytics-outline", "title": "Smart matching", "description": "Relevant professionals, automatically" },
@@ -49,7 +79,7 @@
       "iconComposition": { "primary": "analytics-outline", "accent": "people-outline" },
       "tagline": "SMART MATCHING",
       "title": "Find the right people, automatically",
-      "subtitle": "AI-powered profile analysis surfaces the most relevant professionals in your industry. No manual searching needed.",
+      "subtitle": "A company in Lecco finding a distributor in Houston. A startup in Berlin discovering an investor in Milan. AI surfaces the right connections — automatically.",
       "features": [
         { "icon": "search-outline", "title": "AI-powered discovery", "description": "Matches based on role, industry, and interests" },
         { "icon": "notifications-outline", "title": "Proactive suggestions", "description": "The assistant suggests connections when ready" },

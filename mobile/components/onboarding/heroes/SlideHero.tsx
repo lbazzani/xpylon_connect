@@ -1,5 +1,7 @@
 import React from "react";
 import type { SlideHeroType } from "../types";
+import { HeroPlatformFade } from "./HeroPlatformFade";
+import { HeroPeopleHandshake } from "./HeroPeopleHandshake";
 import { HeroLogoReveal } from "./HeroLogoReveal";
 import { HeroChatSequence } from "./HeroChatSequence";
 import { HeroConnectionWeb } from "./HeroConnectionWeb";
@@ -10,6 +12,8 @@ import { HeroCardStack } from "./HeroCardStack";
 import { HeroSparkBurst } from "./HeroSparkBurst";
 
 const HEROES: Record<SlideHeroType, React.ComponentType<{ isActive: boolean }>> = {
+  "platform-fade": HeroPlatformFade,
+  "people-handshake": HeroPeopleHandshake,
   "logo-reveal": HeroLogoReveal,
   "chat-sequence": HeroChatSequence,
   "connection-web": HeroConnectionWeb,
