@@ -2,9 +2,9 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 import prisma from "./prisma";
-import { generateAndSaveEmbedding, findSimilarUsers, formatSuggestionForBot } from "./matching";
+import { generateAndSaveEmbedding, findSimilarUsers, formatSuggestionForBot, generateOpportunityEmbedding, searchOpportunitiesByQuery, formatOpportunitySearchForBot } from "./matching";
 import { moderateOpportunity } from "./moderation";
-import { notifyComplianceReview } from "./notifications";
+import { notifyComplianceReview, notifyMatchingUsersOfNewOpportunity } from "./notifications";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -40,16 +40,23 @@ Your responsibilities:
    Use the phrase "[SUGGEST_MATCHES]" in your response when you want to show suggestions.
    The system will replace this with actual matching results.
 6. CREATE OPPORTUNITIES: When in an OPPORTUNITY_CREATION conversation, guide the user step by step:
-   a. Ask for the TYPE (partnership, distribution, investment, supply, acquisition, other)
+   a. Ask for the TYPE (PARTNERSHIP, DISTRIBUTION, INVESTMENT, SUPPLY, ACQUISITION, OTHER)
    b. Ask for a TITLE (suggest one based on what they describe)
    c. Ask for a DESCRIPTION (help them write a compelling one, suggest improvements)
    d. Ask for TAGS (suggest relevant ones based on the description)
-   e. Ask about VISIBILITY: open (anyone can contact), network (you approve requests), invite-only (you share manually)
-   f. Ask about COMMUNICATION: private chats (separate 1:1 with each interested person) or group chat (one shared conversation)
-   g. When all info is collected, use "[CREATE_OPPORTUNITY]" followed by JSON with the collected data
+   e. Ask about VISIBILITY: OPEN (anyone can contact), NETWORK (you approve requests), INVITE_ONLY (you share manually)
+   f. Ask about COMMUNICATION: PRIVATE (separate 1:1 with each interested person) or GROUP (one shared conversation)
+   g. When all info is collected, use "[CREATE_OPPORTUNITY]" followed by JSON with the collected data.
+      JSON fields MUST use UPPERCASE enum values: type (PARTNERSHIP|DISTRIBUTION|INVESTMENT|SUPPLY|ACQUISITION|OTHER), visibility (OPEN|NETWORK|INVITE_ONLY), commMode (PRIVATE|GROUP)
 
    Be helpful — suggest titles, improve descriptions, recommend tags based on their industry.
    Confirm before creating: "Here's a summary of your opportunity: ... Shall I publish it?"
+
+7. SEARCH OPPORTUNITIES: When the user asks about opportunities, wants to find deals, partnerships, investments, or any business lead, search for them using "[SEARCH_OPPORTUNITIES:<query>]" where <query> is a concise search description derived from what the user is looking for. Examples:
+   - User: "I'm looking for distribution partners in Europe" → "[SEARCH_OPPORTUNITIES:distribution partnership Europe]"
+   - User: "Any investment opportunities in tech?" → "[SEARCH_OPPORTUNITIES:investment technology]"
+   - User: "Find me supply chain deals" → "[SEARCH_OPPORTUNITIES:supply chain logistics deals]"
+   The system will replace this with actual search results that include bookmark buttons. You can also proactively suggest searching when the user's profile seems complete.
 
 Rules:
 - Always respond in English
@@ -228,9 +235,20 @@ export async function generateBotReply(
 
     // Handle suggestion trigger
     if (reply.includes("[SUGGEST_MATCHES]")) {
-      const suggestions = await findSimilarUsers(userId, 3);
+      const suggestions = await findSimilarUsers(userId, 3, user?.isDemo || false);
       const formatted = formatSuggestionForBot(suggestions);
       return reply.replace("[SUGGEST_MATCHES]", formatted);
+    }
+
+    // Handle opportunity search trigger
+    if (reply.includes("[SEARCH_OPPORTUNITIES:")) {
+      const match = reply.match(/\[SEARCH_OPPORTUNITIES:([^\]]+)\]/);
+      if (match) {
+        const query = match[1].trim();
+        const results = await searchOpportunitiesByQuery(userId, query, 5, user?.isDemo || false);
+        const formatted = formatOpportunitySearchForBot(results);
+        return reply.replace(/\[SEARCH_OPPORTUNITIES:[^\]]+\]/, formatted);
+      }
     }
 
     // Handle opportunity creation trigger
@@ -241,13 +259,21 @@ export async function generateBotReply(
           const oppData = JSON.parse(jsonMatch[1]);
           const title = oppData.title || "Untitled Opportunity";
           const description = oppData.description || "";
-          const type = oppData.type || "OTHER";
+          const type = (oppData.type || "OTHER").toUpperCase().replace(/\s+/g, "_");
           const tags = oppData.tags || [];
-          const oppVisibility = oppData.visibility || "NETWORK";
-          const commModeVal = oppData.commMode || "PRIVATE";
+          const oppVisibility = (oppData.visibility || "NETWORK").toUpperCase().replace(/\s+/g, "_");
+          const commModeVal = (oppData.commMode || "PRIVATE").toUpperCase();
+
+          // Validate enum values
+          const validTypes = ["PARTNERSHIP", "DISTRIBUTION", "INVESTMENT", "SUPPLY", "ACQUISITION", "OTHER"];
+          const validVisibility = ["INVITE_ONLY", "NETWORK", "OPEN"];
+          const validCommMode = ["PRIVATE", "GROUP"];
+          const safeType = validTypes.includes(type) ? type : "OTHER";
+          const safeVisibility = validVisibility.includes(oppVisibility) ? oppVisibility : "NETWORK";
+          const safeCommMode = validCommMode.includes(commModeVal) ? commModeVal : "PRIVATE";
 
           // Run compliance review
-          const modResult = await moderateOpportunity(title, description, type, tags);
+          const modResult = await moderateOpportunity(title, description, safeType, tags);
 
           if (modResult.decision === "REJECTED") {
             return reply.replace(/\[CREATE_OPPORTUNITY\]\s*\{[\s\S]*\}/,
@@ -261,17 +287,17 @@ export async function generateBotReply(
               authorId: userId,
               title,
               description,
-              type,
+              type: safeType,
               tags,
-              visibility: oppVisibility,
-              commMode: commModeVal,
+              visibility: safeVisibility,
+              commMode: safeCommMode,
               status: needsReview ? "UNDER_REVIEW" : "ACTIVE",
               reviewNote: needsReview ? modResult.reason : null,
             },
           });
 
           // Only create GROUP conversation if approved immediately
-          if (!needsReview && commModeVal === "GROUP") {
+          if (!needsReview && safeCommMode === "GROUP") {
             await prisma.conversation.create({
               data: {
                 type: "OPPORTUNITY_GROUP",
@@ -291,6 +317,15 @@ export async function generateBotReply(
             data: { name: title, opportunityId: opp.id },
           });
 
+          // Generate embedding then notify matching users
+          generateOpportunityEmbedding(opp.id)
+            .then(() => {
+              if (!needsReview) {
+                notifyMatchingUsersOfNewOpportunity(opp.id, userId, title, user?.isDemo || false).catch(console.error);
+              }
+            })
+            .catch(console.error);
+
           // Notify admins if flagged
           if (needsReview) {
             const authorName = `${user?.firstName || "Unknown"} ${user?.lastName || ""}`.trim();
@@ -301,7 +336,7 @@ export async function generateBotReply(
           }
 
           return reply.replace(/\[CREATE_OPPORTUNITY\]\s*\{[\s\S]*\}/,
-            `Your opportunity "${title}" has been published! It's now visible to ${oppVisibility === "OPEN" ? "everyone" : oppVisibility === "NETWORK" ? "matching professionals in the network" : "people you invite"}. You can manage it from the Opportunities tab.`);
+            `Your opportunity "${title}" has been published! It's now visible to ${safeVisibility === "OPEN" ? "everyone" : safeVisibility === "NETWORK" ? "matching professionals in the network" : "people you invite"}. You can manage it from the Opportunities tab.`);
         }
       } catch (err) {
         console.error("Opportunity creation error:", err);

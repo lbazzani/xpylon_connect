@@ -1,7 +1,8 @@
-import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from "react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useAuth } from "../../../hooks/useAuth";
 import { colors } from "../../../lib/theme";
@@ -10,6 +11,7 @@ import { ProductTour } from "../../../components/onboarding/ProductTour";
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const [showTour, setShowTour] = useState(false);
+  const router = useRouter();
 
   function handleLogout() {
     Alert.alert("Sign out", "Are you sure you want to sign out?", [
@@ -21,10 +23,13 @@ export default function ProfileScreen() {
   if (!user) return null;
 
   const menuItems = [
-    { label: "Edit profile", subtitle: "Update your information", iconName: "create-outline" as const, color: colors.primary },
-    { label: "My company", subtitle: user.company?.name || "Add company details", iconName: "business-outline" as const, color: colors.blue },
-    { label: "Notifications", subtitle: "Manage your preferences", iconName: "notifications-outline" as const, color: colors.green },
-    { label: "Privacy & security", subtitle: "Account settings", iconName: "shield-outline" as const, color: colors.gray500 },
+    { label: "Edit profile", subtitle: "Update your information", iconName: "create-outline" as const, color: colors.primary, onPress: () => router.push("/(app)/profile/edit" as any) },
+    { label: "My company", subtitle: user.company?.name || "Add company details", iconName: "business-outline" as const, color: colors.blue, onPress: () => router.push("/(app)/profile/edit" as any) },
+    { label: "Notifications", subtitle: "Manage your preferences", iconName: "notifications-outline" as const, color: colors.green, onPress: () => Alert.alert("Coming soon", "Notification preferences will be available in a future update.") },
+    { label: "Privacy policy", subtitle: "How we handle your data", iconName: "shield-outline" as const, color: colors.gray500, onPress: () => {
+      const baseUrl = (process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000").replace(/\/+$/, "");
+      Linking.openURL(`${baseUrl}/privacy`);
+    }},
     { label: "How it works", subtitle: "Learn about Xpylon Connect", iconName: "information-circle-outline" as const, color: colors.blue, onPress: () => setShowTour(true) },
   ];
 

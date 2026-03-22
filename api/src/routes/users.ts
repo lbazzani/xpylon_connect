@@ -23,7 +23,7 @@ router.get("/me", async (req, res) => {
 // PATCH /users/me
 router.patch("/me", async (req, res) => {
   try {
-    const { firstName, lastName, bio, role } = req.body;
+    const { firstName, lastName, bio, role, industry, companyId } = req.body;
     const user = await prisma.user.update({
       where: { id: req.userId },
       data: {
@@ -31,12 +31,78 @@ router.patch("/me", async (req, res) => {
         ...(lastName && { lastName }),
         ...(bio !== undefined && { bio }),
         ...(role !== undefined && { role }),
+        ...(industry !== undefined && { industry }),
+        ...(companyId !== undefined && { companyId }),
       },
       include: { company: true },
     });
     res.json({ user });
   } catch (err) {
     res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
+// GET /users/companies/search — fuzzy company search for autocomplete
+router.get("/companies/search", async (req, res) => {
+  try {
+    const q = (req.query.q as string || "").trim();
+    if (q.length < 2) {
+      res.json({ companies: [] });
+      return;
+    }
+
+    const companies = await prisma.company.findMany({
+      where: {
+        name: { contains: q, mode: "insensitive" },
+      },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { users: true } },
+      },
+      orderBy: { name: "asc" },
+      take: 10,
+    });
+
+    res.json({
+      companies: companies.map((c) => ({
+        id: c.id,
+        name: c.name,
+        memberCount: c._count.users,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to search companies" });
+  }
+});
+
+// POST /users/companies — create new company (returns existing if name matches)
+router.post("/companies", async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ error: "Company name is required" });
+      return;
+    }
+
+    const trimmed = name.trim();
+
+    // Check for existing company (case-insensitive)
+    const existing = await prisma.company.findFirst({
+      where: { name: { equals: trimmed, mode: "insensitive" } },
+    });
+
+    if (existing) {
+      res.json({ company: existing, isExisting: true });
+      return;
+    }
+
+    const company = await prisma.company.create({
+      data: { name: trimmed },
+    });
+    res.status(201).json({ company, isExisting: false });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create company" });
   }
 });
 

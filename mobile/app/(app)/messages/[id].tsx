@@ -1,4 +1,4 @@
-import { View, Text, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from "react-native";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,12 +9,14 @@ import { ChatInput } from "../../../components/chat/ChatInput";
 import { DateSeparator } from "../../../components/chat/DateSeparator";
 import { TypingIndicator } from "../../../components/chat/TypingIndicator";
 import { CallScreen } from "../../../components/chat/CallScreen";
+import { RecordingConsentModal } from "../../../components/chat/RecordingConsentModal";
 import { colors } from "../../../lib/theme";
 import type { CallType } from "@xpylon/shared";
 import { useWebSocket } from "../../../hooks/useWebSocket";
+import { useCall } from "../../../hooks/useCall";
 import { useAuthStore } from "../../../store/auth";
 import { api } from "../../../lib/api";
-import type { Message, Conversation, WsServerEvent, Call } from "@xpylon/shared";
+import type { Message, Conversation, WsServerEvent } from "@xpylon/shared";
 
 const SENDER_COLORS = ["#F15A24", "#10B981", "#3B82F6", "#AF52DE", "#F59E0B", "#EF4444", "#5856D6", "#00C7BE"];
 
@@ -30,15 +32,15 @@ export default function ChatScreen() {
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [activeCall, setActiveCall] = useState<Call | null>(null);
-  const [callCallerName, setCallCallerName] = useState("");
-  const [isCallIncoming, setIsCallIncoming] = useState(false);
-  const [isCallConnected, setIsCallConnected] = useState(false);
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // sendRef allows useCall to use the WS send function without circular deps
+  const sendRef = useRef<any>(null);
+  const callManager = useCall((event: any) => sendRef.current?.(event));
 
   const { send } = useWebSocket(useCallback((event: WsServerEvent) => {
     if (event.type === "new_message" && event.conversationId === id) {
@@ -98,19 +100,27 @@ export default function ChatScreen() {
         return next;
       });
     }
-    if (event.type === "call_incoming") {
-      setActiveCall(event.call);
-      setCallCallerName(event.callerName);
-      setIsCallIncoming(event.call.callerId !== user?.id);
-      setIsCallConnected(false);
-    }
-    if (event.type === "call_accepted") {
-      setIsCallConnected(true);
-    }
-    if (event.type === "call_ended" || event.type === "call_declined") {
-      setActiveCall(null);
+    // Forward all call/WebRTC/recording events to the call manager
+    if (
+      event.type === "call_incoming" ||
+      event.type === "call_accepted" ||
+      event.type === "call_ended" ||
+      event.type === "call_declined" ||
+      event.type === "webrtc_offer" ||
+      event.type === "webrtc_answer" ||
+      event.type === "webrtc_ice_candidate" ||
+      event.type === "recording_request" ||
+      event.type === "recording_consent" ||
+      event.type === "recording_declined" ||
+      event.type === "recording_started" ||
+      event.type === "recording_stopped"
+    ) {
+      callManager.handleCallEvent(event);
     }
   }, [id, user?.id]));
+
+  // Wire up sendRef so useCall can send WS events
+  sendRef.current = send;
 
   useEffect(() => {
     loadData();
@@ -175,22 +185,24 @@ export default function ChatScreen() {
     send({ type: "stop_typing", conversationId: id! });
   }
 
-  function handleStartCall(callType: string) {
-    send({ type: "call_start", conversationId: id!, callType });
+  function handleStartCall(callType: CallType) {
+    if (isGroup) return;
+    callManager.startCall(id!, callType);
   }
 
-  function handleAcceptCall() {
-    if (activeCall) send({ type: "call_accept", callId: activeCall.id });
-  }
-
-  function handleDeclineCall() {
-    if (activeCall) send({ type: "call_decline", callId: activeCall.id });
-    setActiveCall(null);
-  }
-
-  function handleEndCall() {
-    if (activeCall) send({ type: "call_end", callId: activeCall.id });
-    setActiveCall(null);
+  async function handleSummarize() {
+    if (summarizing) return;
+    setSummarizing(true);
+    try {
+      const data = await api.post(`/conversations/${id}/summarize`);
+      if (!data.success) {
+        Alert.alert("Summary", data.message || "No professional content to summarize.");
+      }
+    } catch {
+      Alert.alert("Error", "Failed to generate summary");
+    } finally {
+      setSummarizing(false);
+    }
   }
 
   const isGroup = conversation?.type === "OPPORTUNITY_GROUP";
@@ -273,17 +285,29 @@ export default function ChatScreen() {
             </Text>
           ) : null}
         </View>
+        {!isGroup && (
+          <>
+            <TouchableOpacity
+              onPress={() => handleStartCall("VOICE" as CallType)}
+              className="p-2 mr-1"
+            >
+              <Ionicons name="call-outline" size={20} color={colors.gray700} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleStartCall("VIDEO" as CallType)}
+              className="p-2"
+            >
+              <Ionicons name="videocam-outline" size={20} color={colors.gray700} />
+            </TouchableOpacity>
+          </>
+        )}
         <TouchableOpacity
-          onPress={() => handleStartCall("VOICE")}
-          className="p-2 mr-1"
-        >
-          <Ionicons name="call-outline" size={20} color={colors.gray700} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => handleStartCall("VIDEO")}
+          onPress={handleSummarize}
+          disabled={summarizing}
           className="p-2"
+          style={{ opacity: summarizing ? 0.4 : 1 }}
         >
-          <Ionicons name="videocam-outline" size={20} color={colors.gray700} />
+          <Ionicons name="document-text-outline" size={20} color={colors.gray700} />
         </TouchableOpacity>
       </View>
 
@@ -313,6 +337,7 @@ export default function ChatScreen() {
                   senderColor={senderColorMap.get(item.data.senderId)}
                   onReply={(msg) => setReplyingTo(msg)}
                   onDelete={handleDelete}
+                  onViewOpportunity={(oppId) => router.push(`/(app)/opportunities/${oppId}` as any)}
                 />
               );
             }}
@@ -336,17 +361,37 @@ export default function ChatScreen() {
         />
       </KeyboardAvoidingView>
 
-      {activeCall && (
+      {callManager.activeCall && (
         <CallScreen
-          call={activeCall}
-          callerName={callCallerName}
-          isIncoming={isCallIncoming}
-          isConnected={isCallConnected}
-          onAccept={handleAcceptCall}
-          onDecline={handleDeclineCall}
-          onEnd={handleEndCall}
+          call={callManager.activeCall}
+          callerName={callManager.callerName}
+          isIncoming={callManager.isIncoming}
+          isConnected={callManager.isConnected}
+          localStream={callManager.localStream}
+          remoteStream={callManager.remoteStream}
+          isMuted={callManager.isMuted}
+          isSpeakerOn={callManager.isSpeakerOn}
+          isVideoEnabled={callManager.isVideoEnabled}
+          isRecording={callManager.isRecording}
+          recordingRequested={callManager.recordingRequested}
+          onAccept={callManager.acceptCall}
+          onDecline={callManager.declineCall}
+          onEnd={callManager.endCall}
+          onToggleMute={callManager.toggleMute}
+          onToggleSpeaker={callManager.toggleSpeaker}
+          onToggleVideo={callManager.toggleVideo}
+          onSwitchCamera={callManager.switchCamera}
+          onRequestRecording={callManager.requestRecording}
+          onStopRecording={callManager.stopRecording}
         />
       )}
+
+      <RecordingConsentModal
+        visible={callManager.consentModalVisible}
+        requesterName={callManager.consentRequesterName}
+        onConsent={callManager.consentToRecording}
+        onDecline={callManager.declineRecording}
+      />
     </SafeAreaView>
   );
 }

@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { getLocales } from "expo-localization";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Button } from "../../components/ui/Button";
 import { api } from "../../lib/api";
 import { colors } from "../../lib/theme";
@@ -172,6 +173,22 @@ export default function PhoneScreen() {
               loading={loading}
               disabled={!phone.trim()}
             />
+
+            {/* Demo mode divider + button */}
+            <View className="flex-row items-center mt-8 mb-4">
+              <View className="flex-1 h-px bg-gray-200" />
+              <Text className="mx-4 text-xs text-gray-400 uppercase tracking-wider">or</Text>
+              <View className="flex-1 h-px bg-gray-200" />
+            </View>
+
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/demo-pick" as any)}
+              className="flex-row items-center justify-center py-3 rounded-xl border border-gray-200"
+              activeOpacity={0.7}
+            >
+              <Ionicons name="flask-outline" size={16} color={colors.gray600} />
+              <Text className="text-sm font-medium text-gray-600 ml-2">Try Demo Mode</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Footer */}

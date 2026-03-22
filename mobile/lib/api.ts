@@ -74,4 +74,20 @@ export const api = {
     fetchWithAuth(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }).then(handleResponse),
   delete: (path: string, body?: unknown) =>
     fetchWithAuth(path, { method: "DELETE", body: body ? JSON.stringify(body) : undefined }).then(handleResponse),
+  upload: async (path: string, formData: FormData) => {
+    const { accessToken } = useAuthStore.getState();
+    const headers: Record<string, string> = {};
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    // Don't set Content-Type — fetch sets it automatically with boundary for FormData
+    const response = await fetch(`${API_URL}${path}`, { method: "POST", headers, body: formData });
+    if (response.status === 401) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        headers.Authorization = `Bearer ${useAuthStore.getState().accessToken}`;
+        return fetch(`${API_URL}${path}`, { method: "POST", headers, body: formData }).then(handleResponse);
+      }
+      useAuthStore.getState().logout();
+    }
+    return handleResponse(response);
+  },
 };

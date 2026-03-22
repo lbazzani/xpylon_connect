@@ -2,32 +2,44 @@ import { Router } from "express";
 import prisma from "../lib/prisma";
 import { authMiddleware } from "../middleware/auth";
 import { moderateOpportunity } from "../lib/moderation";
-import { notifyComplianceReview } from "../lib/notifications";
+import { notifyComplianceReview, notifyMatchingUsersOfNewOpportunity } from "../lib/notifications";
+import { generateOpportunityEmbedding, findRelevantOpportunities } from "../lib/matching";
 
 const router = Router();
 router.use(authMiddleware);
 
-// GET /opportunities — Discover feed (NETWORK + OPEN, paginated)
-// Excludes author's own, excludes INVITE_ONLY
-// For NETWORK: could add tag/type matching in future
+// GET /opportunities — Discover feed (NETWORK + OPEN, ranked by relevance)
+// Uses pgvector cosine similarity between user profile embedding and opportunity embedding
+// Falls back to chronological order when embeddings are not available
 router.get("/", async (req, res) => {
   try {
-    const { cursor, limit = "20", type, status = "ACTIVE" } = req.query;
+    const { cursor, limit = "20", type } = req.query;
     const take = Math.min(parseInt(limit as string, 10) || 20, 50);
 
+    // Get relevance-ranked opportunity IDs via pgvector
+    const ranked = await findRelevantOpportunities(
+      req.userId!,
+      take,
+      req.isDemo || false,
+      cursor as string | undefined
+    );
+
+    if (ranked.length === 0) {
+      res.json({ opportunities: [] });
+      return;
+    }
+
+    const rankedIds = ranked.map((r) => r.id);
+    const similarityMap = new Map(ranked.map((r) => [r.id, r.similarity]));
+
+    // Fetch full opportunity data for the ranked IDs
     const where: any = {
-      status: status as string,
-      authorId: { not: req.userId },
-      visibility: { in: ["NETWORK", "OPEN"] },
-      NOT: { status: { in: ["UNDER_REVIEW", "REJECTED"] } },
+      id: { in: rankedIds },
     };
     if (type && type !== "all") where.type = type as string;
 
     const opportunities = await prisma.opportunity.findMany({
       where,
-      orderBy: { createdAt: "desc" },
-      take,
-      ...(cursor ? { cursor: { id: cursor as string }, skip: 1 } : {}),
       include: {
         author: { include: { company: true } },
         _count: { select: { interests: true, savedBy: true } },
@@ -36,20 +48,71 @@ router.get("/", async (req, res) => {
       },
     });
 
-    const result = opportunities.map((o) => ({
-      ...o,
-      interestStatus: o.interests[0]?.status || null,
-      isSaved: o.savedBy.length > 0,
-      interestedCount: o._count.interests,
-      interests: undefined,
-      savedBy: undefined,
-      _count: undefined,
-    }));
+    // Sort by the ranked order (similarity) and attach relevance score
+    const result = rankedIds
+      .map((id) => opportunities.find((o) => o.id === id))
+      .filter(Boolean)
+      .map((o: any) => ({
+        ...o,
+        interestStatus: o.interests[0]?.status || null,
+        isSaved: o.savedBy.length > 0,
+        interestedCount: o._count.interests,
+        relevance: Math.round((similarityMap.get(o.id) || 0) * 100),
+        interests: undefined,
+        savedBy: undefined,
+        _count: undefined,
+      }));
 
     res.json({ opportunities: result });
   } catch (err) {
     console.error("Opportunities fetch error:", err);
     res.status(500).json({ error: "Failed to fetch opportunities" });
+  }
+});
+
+// GET /opportunities/suggested — AI-matched opportunities for the user
+router.get("/suggested", async (req, res) => {
+  try {
+    const ranked = await findRelevantOpportunities(req.userId!, 10, req.isDemo || false);
+
+    // Filter to minimum 50% relevance
+    const relevant = ranked.filter((r) => r.similarity >= 0.5);
+    if (relevant.length === 0) {
+      res.json({ opportunities: [] });
+      return;
+    }
+
+    const ids = relevant.map((r) => r.id);
+    const similarityMap = new Map(relevant.map((r) => [r.id, r.similarity]));
+
+    const opportunities = await prisma.opportunity.findMany({
+      where: { id: { in: ids } },
+      include: {
+        author: { include: { company: true } },
+        _count: { select: { interests: true } },
+        interests: { where: { userId: req.userId }, select: { status: true } },
+        savedBy: { where: { userId: req.userId }, select: { userId: true } },
+      },
+    });
+
+    const result = ids
+      .map((id) => opportunities.find((o) => o.id === id))
+      .filter(Boolean)
+      .map((o: any) => ({
+        ...o,
+        interestStatus: o.interests[0]?.status || null,
+        isSaved: o.savedBy.length > 0,
+        interestedCount: o._count.interests,
+        relevance: Math.round((similarityMap.get(o.id) || 0) * 100),
+        interests: undefined,
+        savedBy: undefined,
+        _count: undefined,
+      }));
+
+    res.json({ opportunities: result });
+  } catch (err) {
+    console.error("Suggested opportunities error:", err);
+    res.status(500).json({ error: "Failed to fetch suggested opportunities" });
   }
 });
 
@@ -196,6 +259,15 @@ router.post("/", async (req, res) => {
       const authorName = `${opportunity.author.firstName} ${opportunity.author.lastName}`;
       notifyComplianceReview(opportunity.id, title, authorName, modResult.reason).catch(console.error);
     }
+
+    // Generate embedding then notify matching users
+    generateOpportunityEmbedding(opportunity.id)
+      .then(() => {
+        if (!needsReview) {
+          notifyMatchingUsersOfNewOpportunity(opportunity.id, req.userId!, title, req.isDemo || false).catch(console.error);
+        }
+      })
+      .catch(console.error);
 
     res.status(201).json({ opportunity });
   } catch (err) {

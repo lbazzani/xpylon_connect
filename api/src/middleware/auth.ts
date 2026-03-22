@@ -5,6 +5,7 @@ declare global {
   namespace Express {
     interface Request {
       userId?: string;
+      isDemo?: boolean;
     }
   }
 }
@@ -16,8 +17,9 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
     return;
   }
   try {
-    const { userId } = verifyAccessToken(header.slice(7));
+    const { userId, isDemo } = verifyAccessToken(header.slice(7));
     req.userId = userId;
+    req.isDemo = isDemo;
     next();
   } catch {
     res.status(401).json({ error: "Invalid token" });

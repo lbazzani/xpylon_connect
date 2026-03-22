@@ -17,8 +17,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.xpylon.connect",
       "infoPlist": {
-        "NSCameraUsageDescription": "Xpylon Connect uses the camera to take photos to send in chat",
-        "NSPhotoLibraryUsageDescription": "Xpylon Connect accesses the gallery to send photos in chat"
+        "NSCameraUsageDescription": "Xpylon Connect uses the camera for video calls and photo sharing",
+        "NSPhotoLibraryUsageDescription": "Xpylon Connect accesses the gallery to send photos in chat",
+        "NSMicrophoneUsageDescription": "Xpylon Connect uses the microphone for voice and video calls"
       }
     },
     "android": {
@@ -29,6 +30,8 @@
       },
       "permissions": [
         "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
         "READ_EXTERNAL_STORAGE",
         "READ_MEDIA_IMAGES"
       ]

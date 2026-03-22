@@ -222,6 +222,38 @@ export async function notifyOpportunityRejected(
   await sendPushNotifications(messages);
 }
 
+export async function notifyMatchingUsersOfNewOpportunity(
+  opportunityId: string,
+  authorId: string,
+  opportunityTitle: string,
+  isDemo: boolean
+): Promise<void> {
+  try {
+    const { findUsersMatchingOpportunity } = await import("./matching");
+    const matchingUsers = await findUsersMatchingOpportunity(opportunityId, 0.55, 20, isDemo);
+
+    const messages: PushMessage[] = [];
+    for (const match of matchingUsers) {
+      const tokens = await getUserPushTokens(match.userId);
+      const relevance = Math.round(match.similarity * 100);
+      for (const token of tokens) {
+        messages.push({
+          to: token,
+          title: "New opportunity for you",
+          body: `"${opportunityTitle}" — ${relevance}% match with your profile`,
+          data: { type: "opportunity_match", opportunityId },
+          sound: "default",
+          channelId: "opportunities",
+        });
+      }
+    }
+
+    await sendPushNotifications(messages);
+  } catch (err) {
+    console.error("Opportunity match notification error:", err);
+  }
+}
+
 export async function notifyMissedCall(
   userId: string,
   callerName: string,

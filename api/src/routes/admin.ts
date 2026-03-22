@@ -25,7 +25,7 @@ router.use(adminGuard);
 router.get("/opportunities/pending", async (req, res) => {
   try {
     const opportunities = await prisma.opportunity.findMany({
-      where: { status: "UNDER_REVIEW" },
+      where: { status: "UNDER_REVIEW", author: { isDemo: false } },
       orderBy: { createdAt: "asc" },
       include: {
         author: { include: { company: true } },

@@ -60,6 +60,7 @@ export interface User {
   industry?: string;
   profileCompleted: boolean;
   isAdmin?: boolean;
+  isDemo?: boolean;
   lastSeenAt?: string;
   isOnline?: boolean;
   createdAt: string;
@@ -251,6 +252,87 @@ export interface Opportunity {
   reviewedBy?: Partial<User>;
 }
 
+// ── Recording & Reminder types ──
+
+export enum CallRecordingStatus {
+  CONSENT_PENDING = "CONSENT_PENDING",
+  CONSENT_DECLINED = "CONSENT_DECLINED",
+  RECORDING = "RECORDING",
+  UPLOADING = "UPLOADING",
+  TRANSCRIBING = "TRANSCRIBING",
+  SUMMARIZING = "SUMMARIZING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+}
+
+export enum ReminderStatus {
+  PENDING = "PENDING",
+  SENT = "SENT",
+  CANCELLED = "CANCELLED",
+}
+
+export interface CallRecording {
+  id: string;
+  callId: string;
+  conversationId: string;
+  initiatorId: string;
+  transcription?: string;
+  summary?: CallSummary;
+  status: CallRecordingStatus;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface CallSummary {
+  topicsDiscussed: string[];
+  keyDecisions: string[];
+  nextSteps: string[];
+  flaggedContent?: string;
+}
+
+export interface Reminder {
+  id: string;
+  userId: string;
+  conversationId: string;
+  content: string;
+  scheduledAt: string;
+  sentAt?: string;
+  status: ReminderStatus;
+  createdAt: string;
+}
+
+// ── Business card scan types ──
+
+export enum CardImportStatus {
+  QUEUED = "QUEUED",
+  PROCESSING = "PROCESSING",
+  EXTRACTED = "EXTRACTED",
+  CONFIRMED = "CONFIRMED",
+  FAILED = "FAILED",
+  SKIPPED = "SKIPPED",
+}
+
+export interface BusinessCardData {
+  firstName: string;
+  lastName: string;
+  role: string;
+  company: string;
+  phone: string;
+  email: string;
+}
+
+export interface CardImportItem {
+  id: string;
+  status: CardImportStatus;
+  extractedData?: BusinessCardData;
+  error?: string;
+  imageUrl: string;
+  imageFullUrl: string;
+  invite?: { id: string; status: string; phoneTarget: string };
+  createdAt: string;
+  processedAt?: string;
+}
+
 // ── API Request / Response types ──
 
 export interface RequestOtpBody {
@@ -266,6 +348,7 @@ export interface VerifyOtpResponse {
   accessToken: string;
   refreshToken: string;
   isNewUser: boolean;
+  isDemo?: boolean;
 }
 
 export interface RefreshTokenBody {
@@ -342,7 +425,13 @@ export type WsServerEvent =
   | { type: "call_declined"; callId: string; userId: string }
   | { type: "webrtc_offer"; callId: string; sdp: string; userId: string }
   | { type: "webrtc_answer"; callId: string; sdp: string; userId: string }
-  | { type: "webrtc_ice_candidate"; callId: string; candidate: string; userId: string };
+  | { type: "webrtc_ice_candidate"; callId: string; candidate: string; userId: string }
+  | { type: "recording_request"; callId: string; userId: string; userName: string }
+  | { type: "recording_consent"; callId: string; userId: string }
+  | { type: "recording_declined"; callId: string; userId: string }
+  | { type: "recording_started"; callId: string }
+  | { type: "recording_stopped"; callId: string }
+  | { type: "error"; message: string };
 
 export type WsClientEvent =
   | { type: "send_message"; conversationId: string; content?: string; replyToId?: string; attachmentIds?: string[] }
@@ -356,4 +445,8 @@ export type WsClientEvent =
   | { type: "call_end"; callId: string }
   | { type: "webrtc_offer"; callId: string; sdp: string }
   | { type: "webrtc_answer"; callId: string; sdp: string }
-  | { type: "webrtc_ice_candidate"; callId: string; candidate: string };
+  | { type: "webrtc_ice_candidate"; callId: string; candidate: string }
+  | { type: "recording_request"; callId: string }
+  | { type: "recording_consent"; callId: string }
+  | { type: "recording_declined"; callId: string }
+  | { type: "recording_stop"; callId: string };

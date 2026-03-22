@@ -9,7 +9,7 @@ router.use(authMiddleware);
 // GET /suggestions — anonymous profiles ranked by similarity
 router.get("/", async (req, res) => {
   try {
-    const profiles = await findSimilarUsers(req.userId!, 10);
+    const profiles = await findSimilarUsers(req.userId!, 10, req.isDemo || false);
     const anonymous = profiles.map(anonymizeProfile);
     res.json({ suggestions: anonymous });
   } catch (err) {
@@ -23,9 +23,9 @@ router.post("/:id/connect", async (req, res) => {
   try {
     const targetId = req.params.id as string;
 
-    // Verify target exists
+    // Verify target exists and is in same mode
     const target = await prisma.user.findUnique({ where: { id: targetId } });
-    if (!target) {
+    if (!target || target.isDemo !== (req.isDemo || false)) {
       res.status(404).json({ error: "User not found" });
       return;
     }

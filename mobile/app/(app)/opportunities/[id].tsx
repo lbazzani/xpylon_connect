@@ -19,6 +19,19 @@ const VIS_INFO: Record<string, { label: string; desc: string; color: string; bg:
   INVITE_ONLY: { label: "Invite only", desc: "This opportunity is shared by invitation.", color: colors.gray600, bg: "#F3F4F6", icon: "lock-closed-outline" },
 };
 
+const STATUS_BANNERS: Record<string, { title: string; desc: string; color: string; bg: string; border: string; icon: string }> = {
+  UNDER_REVIEW: {
+    title: "Under compliance review",
+    desc: "This opportunity is being reviewed by our team to ensure it meets platform guidelines. You'll be notified once it's approved.",
+    color: "#D97706", bg: "#FEF3C7", border: "#FDE68A", icon: "hourglass-outline",
+  },
+  REJECTED: {
+    title: "Not approved",
+    desc: "This opportunity was not approved because it doesn't meet our platform guidelines.",
+    color: "#DC2626", bg: "#FEE2E2", border: "#FECACA", icon: "close-circle-outline",
+  },
+};
+
 export default function OpportunityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [opp, setOpp] = useState<any>(null);
@@ -97,6 +110,21 @@ export default function OpportunityDetailScreen() {
       </View>
 
       <ScrollView className="flex-1">
+        {/* Status banner for under review / rejected */}
+        {STATUS_BANNERS[opp.status] && (
+          <View className="mx-5 mt-4 p-4 rounded-xl" style={{ backgroundColor: STATUS_BANNERS[opp.status].bg, borderWidth: 1, borderColor: STATUS_BANNERS[opp.status].border }}>
+            <View className="flex-row items-center mb-1.5">
+              <Ionicons name={STATUS_BANNERS[opp.status].icon as any} size={16} color={STATUS_BANNERS[opp.status].color} />
+              <Text className="text-sm font-semibold ml-1.5" style={{ color: STATUS_BANNERS[opp.status].color }}>
+                {STATUS_BANNERS[opp.status].title}
+              </Text>
+            </View>
+            <Text className="text-xs leading-4" style={{ color: STATUS_BANNERS[opp.status].color }}>
+              {opp.status === "REJECTED" && opp.reviewNote ? opp.reviewNote : STATUS_BANNERS[opp.status].desc}
+            </Text>
+          </View>
+        )}
+
         {/* Visibility banner */}
         <View className="mx-5 mt-4 p-3 rounded-xl flex-row items-center" style={{ backgroundColor: vis.bg }}>
           <Ionicons name={vis.icon as any} size={16} color={vis.color} />

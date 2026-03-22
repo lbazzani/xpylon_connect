@@ -20,6 +20,7 @@ model User {
   embedding        Unsupported("vector(1536)")?
   profileCompleted Boolean   @default(false)
   isAdmin          Boolean   @default(false)
+  isDemo           Boolean   @default(false)
   lastSeenAt       DateTime?
   isOnline         Boolean   @default(false)
   createdAt        DateTime  @default(now())
@@ -36,6 +37,8 @@ model User {
   opportunityInterests    OpportunityInterest[]
   opportunitySaved        OpportunitySaved[]
   reviewedOpportunities   Opportunity[]         @relation("ReviewedBy")
+  reminders               Reminder[]
+  cardImports             CardImport[]
 }
 
 model Company {
@@ -66,15 +69,17 @@ enum ConnectionStatus {
 }
 
 model Invite {
-  id          String       @id @default(uuid())
-  senderId    String
-  phoneTarget String
-  token       String       @unique
-  status      InviteStatus @default(PENDING)
-  expiresAt   DateTime
-  createdAt   DateTime     @default(now())
+  id             String       @id @default(uuid())
+  senderId       String
+  phoneTarget    String
+  token          String       @unique
+  status         InviteStatus @default(PENDING)
+  businessCardId String?
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
 
-  sender User @relation(fields: [senderId], references: [id])
+  sender     User        @relation(fields: [senderId], references: [id])
+  cardImport CardImport?
 }
 
 enum InviteStatus {
@@ -97,6 +102,7 @@ model Conversation {
   members     ConversationMember[]
   messages    Message[]
   calls       Call[]
+  reminders   Reminder[]
 }
 
 enum ConversationType {
@@ -193,7 +199,9 @@ model StorageObject {
   uploadedById String
   createdAt    DateTime @default(now())
 
-  attachments Attachment[]
+  attachments   Attachment[]
+  callRecording CallRecording?
+  cardImport    CardImport?
 }
 
 model Call {
@@ -207,8 +215,39 @@ model Call {
   createdAt      DateTime   @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
+  recording    CallRecording?
 
   @@index([conversationId])
+}
+
+model CallRecording {
+  id              String              @id @default(uuid())
+  callId          String              @unique
+  conversationId  String
+  initiatorId     String
+  storageObjectId String?             @unique
+  transcription   String?
+  summary         Json?
+  status          CallRecordingStatus @default(CONSENT_PENDING)
+  createdAt       DateTime            @default(now())
+  completedAt     DateTime?
+
+  call          Call           @relation(fields: [callId], references: [id])
+  storageObject StorageObject? @relation(fields: [storageObjectId], references: [id])
+
+  @@index([callId])
+  @@index([conversationId])
+}
+
+enum CallRecordingStatus {
+  CONSENT_PENDING
+  CONSENT_DECLINED
+  RECORDING
+  UPLOADING
+  TRANSCRIBING
+  SUMMARIZING
+  COMPLETED
+  FAILED
 }
 
 enum CallType {
@@ -234,6 +273,7 @@ model Opportunity {
   visibility   OpportunityVisibility
   commMode     CommMode
   status       OpportunityStatus     @default(ACTIVE)
+  embedding    Unsupported("vector(1536)")?
   reviewNote   String?
   reviewedById String?
   reviewedAt   DateTime?
@@ -312,6 +352,33 @@ model OpportunitySaved {
   @@id([opportunityId, userId])
 }
 
+model CardImport {
+  id              String           @id @default(uuid())
+  userId          String
+  storageObjectId String           @unique
+  extractedData   Json?
+  status          CardImportStatus @default(QUEUED)
+  error           String?
+  inviteId        String?          @unique
+  createdAt       DateTime         @default(now())
+  processedAt     DateTime?
+
+  user          User          @relation(fields: [userId], references: [id])
+  storageObject StorageObject @relation(fields: [storageObjectId], references: [id])
+  invite        Invite?       @relation(fields: [inviteId], references: [id])
+
+  @@index([userId, status])
+}
+
+enum CardImportStatus {
+  QUEUED
+  PROCESSING
+  EXTRACTED
+  CONFIRMED
+  FAILED
+  SKIPPED
+}
+
 model FcmToken {
   id        String   @id @default(uuid())
   userId    String
@@ -321,4 +388,27 @@ model FcmToken {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model Reminder {
+  id             String         @id @default(uuid())
+  userId         String
+  conversationId String
+  content        String
+  scheduledAt    DateTime
+  sentAt         DateTime?
+  status         ReminderStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+
+  user         User         @relation(fields: [userId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([userId])
+  @@index([status, scheduledAt])
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  CANCELLED
 }

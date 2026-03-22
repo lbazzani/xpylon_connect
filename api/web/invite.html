@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You've been invited — Xpylon Connect</title>
+  <meta name="description" content="Someone invited you to connect on Xpylon Connect, the intelligent B2B networking platform.">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { primary: '#F15A24', dark: '#1B1B1B' } } }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- Nav -->
+  <nav class="bg-white border-b border-gray-100 px-6 py-4">
+    <div class="max-w-lg mx-auto flex items-center justify-between">
+      <img src="/assets/logo.png" alt="Xpylon Connect" class="h-7">
+      <a href="/" class="text-sm text-gray-500 hover:text-gray-900">Learn more</a>
+    </div>
+  </nav>
+
+  <main class="flex-1 flex items-center justify-center p-6">
+    <div class="max-w-md w-full">
+      <!-- Loading state -->
+      <div id="loading" class="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 text-center">
+        <div class="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+        <p class="text-gray-500">Loading invite...</p>
+      </div>
+
+      <!-- Invite card -->
+      <div id="invite-card" class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 hidden">
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+          </div>
+          <h1 class="text-xl font-bold text-gray-900 mb-1">Connection invite</h1>
+          <p class="text-gray-500 text-sm">You've been invited to connect on Xpylon</p>
+        </div>
+
+        <!-- Sender info -->
+        <div class="bg-gray-50 rounded-2xl p-5 mb-6 text-center">
+          <div id="sender-avatar" class="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-3">
+            <span id="sender-initials" class="text-lg font-bold text-gray-500"></span>
+          </div>
+          <p id="sender-name" class="font-semibold text-gray-900 text-lg"></p>
+          <p id="sender-role" class="text-sm text-gray-500 mt-0.5"></p>
+          <p id="sender-company" class="text-sm text-gray-400"></p>
+        </div>
+
+        <!-- Open in app -->
+        <a id="open-app-btn" href="#" class="block w-full text-center bg-dark text-white font-semibold py-3.5 rounded-xl mb-3 hover:bg-gray-800 transition">
+          Open in Xpylon Connect
+        </a>
+
+        <!-- Download buttons -->
+        <div class="mt-4">
+          <p class="text-xs text-gray-400 text-center mb-3">Don't have the app yet?</p>
+          <div class="flex gap-3">
+            <a href="#" class="flex-1 flex items-center justify-center gap-2 bg-gray-100 py-3 rounded-xl hover:bg-gray-200 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+              <span class="text-sm font-medium">App Store</span>
+            </a>
+            <a href="#" class="flex-1 flex items-center justify-center gap-2 bg-gray-100 py-3 rounded-xl hover:bg-gray-200 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 1.33L16.057 13l-2.302-2.302 3.943-1.19zM5.864 2.658L16.8 8.99l-2.302 2.302-8.634-8.634z"/></svg>
+              <span class="text-sm font-medium">Google Play</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error state -->
+      <div id="error-card" class="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 text-center hidden">
+        <div class="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+        </div>
+        <h2 class="text-lg font-bold text-gray-900 mb-2">Invite not found</h2>
+        <p class="text-gray-500 text-sm mb-6">This invite link may have expired or is no longer valid.</p>
+        <a href="/" class="inline-block bg-dark text-white font-semibold px-6 py-3 rounded-xl hover:bg-gray-800 transition">Go to Xpylon Connect</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const token = window.location.pathname.split('/invite/')[1];
+    const deepLink = 'xpylonconnect://invite/' + token;
+
+    async function loadInvite() {
+      try {
+        const res = await fetch('/invites/' + token);
+        if (!res.ok) throw new Error('Not found');
+        const data = await res.json();
+        const sender = data.invite.sender;
+
+        document.getElementById('sender-initials').textContent =
+          (sender.firstName?.[0] || '') + (sender.lastName?.[0] || '');
+        document.getElementById('sender-name').textContent =
+          sender.firstName + ' ' + sender.lastName;
+        document.getElementById('sender-role').textContent = sender.role || '';
+        document.getElementById('sender-company').textContent =
+          sender.company?.name || '';
+        document.getElementById('open-app-btn').href = deepLink;
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('invite-card').classList.remove('hidden');
+
+        // Try to auto-open the app after a short delay
+        setTimeout(() => { window.location.href = deepLink; }, 500);
+      } catch {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error-card').classList.remove('hidden');
+      }
+    }
+
+    if (token) {
+      loadInvite();
+    } else {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error-card').classList.remove('hidden');
+    }
+  </script>
+
+</body>
+</html>

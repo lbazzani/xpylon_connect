@@ -2,6 +2,7 @@ import { View, Text, KeyboardAvoidingView, Platform, TouchableOpacity } from "re
 import { useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { useAuth } from "../../hooks/useAuth";
@@ -9,7 +10,8 @@ import { api } from "../../lib/api";
 import { colors } from "../../lib/theme";
 
 export default function OtpScreen() {
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { phone, isDemo: isDemoParam } = useLocalSearchParams<{ phone: string; isDemo?: string }>();
+  const isDemoMode = isDemoParam === "true";
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -26,8 +28,10 @@ export default function OtpScreen() {
     setLoading(true);
     setError("");
     try {
-      const data = await api.post("/auth/verify-otp", { phone, code });
-      await login(data.accessToken, data.refreshToken);
+      const body: any = { phone, code };
+      if (isDemoMode) body.isDemo = true;
+      const data = await api.post("/auth/verify-otp", body);
+      await login(data.accessToken, data.refreshToken, data.isDemo);
       if (data.isNewUser) {
         router.replace("/(auth)/register");
       } else {
@@ -44,7 +48,9 @@ export default function OtpScreen() {
   async function handleResend() {
     setResending(true);
     try {
-      await api.post("/auth/request-otp", { phone });
+      const body: any = { phone };
+      if (isDemoMode) body.isDemo = true;
+      await api.post("/auth/request-otp", body);
       setResent(true);
       setTimeout(() => setResent(false), 3000);
     } catch {} finally {
@@ -75,10 +81,24 @@ export default function OtpScreen() {
             </View>
 
             <Text className="text-2xl font-bold text-gray-900 mb-1">Verification</Text>
-            <Text className="text-sm text-gray-500 mb-1 leading-5">
-              Enter the 6-digit code sent to
-            </Text>
-            <Text className="text-sm font-semibold text-gray-800 mb-8">{phone}</Text>
+            {isDemoMode ? (
+              <>
+                <Text className="text-sm text-gray-500 mb-1 leading-5">
+                  Enter the demo verification code
+                </Text>
+                <View className="flex-row items-center mb-6 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
+                  <Ionicons name="flask-outline" size={14} color="#D97706" />
+                  <Text className="text-xs text-amber-700 ml-1.5">Demo mode — use code <Text className="font-bold">116261</Text></Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text className="text-sm text-gray-500 mb-1 leading-5">
+                  Enter the 6-digit code sent to
+                </Text>
+                <Text className="text-sm font-semibold text-gray-800 mb-8">{phone}</Text>
+              </>
+            )}
 
             <Input
               label="Verification code"
@@ -102,22 +122,24 @@ export default function OtpScreen() {
             />
 
             {/* Resend */}
-            <View className="items-center mt-8">
-              {resent ? (
-                <Text className="text-sm font-medium" style={{ color: colors.green }}>
-                  Code sent successfully
-                </Text>
-              ) : (
-                <TouchableOpacity onPress={handleResend} disabled={resending}>
-                  <Text className="text-sm text-gray-500">
-                    Didn't receive the code?{" "}
-                    <Text className="font-semibold" style={{ color: colors.primary }}>
-                      {resending ? "Sending..." : "Resend"}
-                    </Text>
+            {!isDemoMode && (
+              <View className="items-center mt-8">
+                {resent ? (
+                  <Text className="text-sm font-medium" style={{ color: colors.green }}>
+                    Code sent successfully
                   </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+                ) : (
+                  <TouchableOpacity onPress={handleResend} disabled={resending}>
+                    <Text className="text-sm text-gray-500">
+                      Didn't receive the code?{" "}
+                      <Text className="font-semibold" style={{ color: colors.primary }}>
+                        {resending ? "Sending..." : "Resend"}
+                      </Text>
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>

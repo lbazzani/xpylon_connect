@@ -10,6 +10,9 @@ interface AuthenticatedSocket extends WebSocket {
 }
 
 const clients = new Map<string, AuthenticatedSocket>();
+const callTimeouts = new Map<string, NodeJS.Timeout>();
+const recordingConsents = new Map<string, Set<string>>(); // callId -> Set of userId who consented
+const CALL_RING_TIMEOUT = 30000; // 30 seconds
 
 const MESSAGE_INCLUDE = {
   sender: { include: { company: true } },
@@ -288,6 +291,26 @@ export function setupWebSocket(server: http.Server) {
         // ── Call start ──
         if (data.type === "call_start") {
           if (!(await verifyMembership(data.conversationId, ws.userId!))) return;
+
+          // Only allow calls in DIRECT conversations
+          const conv = await prisma.conversation.findUnique({ where: { id: data.conversationId } });
+          if (!conv || conv.type !== "DIRECT") {
+            ws.send(JSON.stringify({ type: "error", message: "Calls are only available in direct conversations" }));
+            return;
+          }
+
+          // Prevent duplicate calls — check if user already has an active call
+          const existingCall = await prisma.call.findFirst({
+            where: {
+              status: { in: ["RINGING", "ONGOING"] },
+              conversation: { members: { some: { userId: ws.userId! } } },
+            },
+          });
+          if (existingCall) {
+            ws.send(JSON.stringify({ type: "error", message: "You already have an active call" }));
+            return;
+          }
+
           const callerUser = await prisma.user.findUnique({ where: { id: ws.userId! } });
           if (!callerUser) return;
 
@@ -299,6 +322,8 @@ export function setupWebSocket(server: http.Server) {
             },
           });
 
+          const callerName = `${callerUser.firstName} ${callerUser.lastName}`;
+
           // Notify other members
           const members = await prisma.conversationMember.findMany({
             where: { conversationId: data.conversationId },
@@ -308,30 +333,44 @@ export function setupWebSocket(server: http.Server) {
             if (member.userId === ws.userId) continue;
             const client = clients.get(member.userId);
             if (client && client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: "call_incoming",
-                call,
-                callerName: `${callerUser.firstName} ${callerUser.lastName}`,
-              }));
+              client.send(JSON.stringify({ type: "call_incoming", call, callerName }));
             }
           }
 
           // Confirm call creation to caller
-          ws.send(JSON.stringify({
-            type: "call_incoming",
-            call,
-            callerName: `${callerUser.firstName} ${callerUser.lastName}`,
-          }));
+          ws.send(JSON.stringify({ type: "call_incoming", call, callerName }));
 
           // Send push notification for incoming call
-          if (callerUser) {
-            notifyIncomingCall(
-              data.conversationId,
-              ws.userId!,
-              `${callerUser.firstName} ${callerUser.lastName}`,
-              data.callType
-            ).catch(console.error);
-          }
+          notifyIncomingCall(data.conversationId, ws.userId!, callerName, data.callType).catch(console.error);
+
+          // Set 30s ringing timeout
+          const timeoutId = setTimeout(async () => {
+            callTimeouts.delete(call.id);
+            try {
+              const currentCall = await prisma.call.findUnique({ where: { id: call.id } });
+              if (currentCall && currentCall.status === "RINGING") {
+                await prisma.call.update({
+                  where: { id: call.id },
+                  data: { status: "MISSED", endedAt: new Date() },
+                });
+
+                await broadcastToConversation(
+                  call.conversationId,
+                  JSON.stringify({ type: "call_ended", callId: call.id, reason: "timeout" })
+                );
+
+                // Send missed call notifications
+                for (const member of members) {
+                  if (member.userId === call.callerId) continue;
+                  notifyMissedCall(member.userId, callerName, data.callType).catch(console.error);
+                }
+              }
+            } catch (err) {
+              console.error("Call timeout error:", err);
+            }
+          }, CALL_RING_TIMEOUT);
+
+          callTimeouts.set(call.id, timeoutId);
         }
 
         // ── Call accept ──
@@ -339,6 +378,10 @@ export function setupWebSocket(server: http.Server) {
           const call = await prisma.call.findUnique({ where: { id: data.callId } });
           if (!call) return;
           if (!(await verifyMembership(call.conversationId, ws.userId!))) return;
+
+          // Clear ringing timeout
+          const acceptTimeout = callTimeouts.get(data.callId);
+          if (acceptTimeout) { clearTimeout(acceptTimeout); callTimeouts.delete(data.callId); }
 
           await prisma.call.update({
             where: { id: data.callId },
@@ -357,6 +400,10 @@ export function setupWebSocket(server: http.Server) {
           if (!call) return;
           if (!(await verifyMembership(call.conversationId, ws.userId!))) return;
 
+          // Clear ringing timeout
+          const declineTimeout = callTimeouts.get(data.callId);
+          if (declineTimeout) { clearTimeout(declineTimeout); callTimeouts.delete(data.callId); }
+
           await prisma.call.update({
             where: { id: data.callId },
             data: { status: "DECLINED", endedAt: new Date() },
@@ -374,6 +421,10 @@ export function setupWebSocket(server: http.Server) {
           if (!call) return;
           if (!(await verifyMembership(call.conversationId, ws.userId!))) return;
 
+          // Clear ringing timeout
+          const endTimeout = callTimeouts.get(data.callId);
+          if (endTimeout) { clearTimeout(endTimeout); callTimeouts.delete(data.callId); }
+
           await prisma.call.update({
             where: { id: data.callId },
             data: { status: "ENDED", endedAt: new Date() },
@@ -382,6 +433,103 @@ export function setupWebSocket(server: http.Server) {
           await broadcastToConversation(
             call.conversationId,
             JSON.stringify({ type: "call_ended", callId: data.callId, reason: "ended" })
+          );
+        }
+
+        // ── Recording consent flow ──
+        if (data.type === "recording_request") {
+          const call = await prisma.call.findUnique({ where: { id: data.callId } });
+          if (!call || call.status !== "ONGOING") return;
+          if (!(await verifyMembership(call.conversationId, ws.userId!))) return;
+
+          // Create CallRecording record
+          await prisma.callRecording.create({
+            data: {
+              callId: data.callId,
+              conversationId: call.conversationId,
+              initiatorId: ws.userId!,
+              status: "CONSENT_PENDING",
+            },
+          }).catch(() => {}); // Ignore if already exists
+
+          // Initiator auto-consents
+          const consents = new Set<string>([ws.userId!]);
+          recordingConsents.set(data.callId, consents);
+
+          const reqUser = await prisma.user.findUnique({ where: { id: ws.userId! } });
+          const userName = reqUser ? `${reqUser.firstName} ${reqUser.lastName}` : "Someone";
+
+          // Send request to other members
+          await broadcastToConversation(
+            call.conversationId,
+            JSON.stringify({ type: "recording_request", callId: data.callId, userId: ws.userId!, userName }),
+            ws.userId!
+          );
+        }
+
+        if (data.type === "recording_consent") {
+          const consents = recordingConsents.get(data.callId);
+          if (!consents) return;
+          const call = await prisma.call.findUnique({ where: { id: data.callId } });
+          if (!call) return;
+
+          consents.add(ws.userId!);
+
+          // Check if all conversation members have consented
+          const members = await prisma.conversationMember.findMany({
+            where: { conversationId: call.conversationId },
+          });
+          const allConsented = members.every((m) => consents.has(m.userId));
+
+          if (allConsented) {
+            await prisma.callRecording.updateMany({
+              where: { callId: data.callId },
+              data: { status: "RECORDING" },
+            });
+            recordingConsents.delete(data.callId);
+
+            await broadcastToConversation(
+              call.conversationId,
+              JSON.stringify({ type: "recording_started", callId: data.callId })
+            );
+          } else {
+            // Notify that this user consented (so requester knows)
+            await broadcastToConversation(
+              call.conversationId,
+              JSON.stringify({ type: "recording_consent", callId: data.callId, userId: ws.userId! }),
+              ws.userId!
+            );
+          }
+        }
+
+        if (data.type === "recording_declined") {
+          const call = await prisma.call.findUnique({ where: { id: data.callId } });
+          if (!call) return;
+          recordingConsents.delete(data.callId);
+
+          await prisma.callRecording.updateMany({
+            where: { callId: data.callId },
+            data: { status: "CONSENT_DECLINED" },
+          });
+
+          await broadcastToConversation(
+            call.conversationId,
+            JSON.stringify({ type: "recording_declined", callId: data.callId, userId: ws.userId! })
+          );
+        }
+
+        if (data.type === "recording_stop") {
+          const call = await prisma.call.findUnique({ where: { id: data.callId } });
+          if (!call) return;
+
+          await prisma.callRecording.updateMany({
+            where: { callId: data.callId, status: "RECORDING" },
+            data: { status: "UPLOADING" },
+          });
+
+          await broadcastToConversation(
+            call.conversationId,
+            JSON.stringify({ type: "recording_stopped", callId: data.callId })
           );
         }
 
@@ -432,6 +580,52 @@ export function setupWebSocket(server: http.Server) {
           userId: ws.userId,
           lastSeenAt: now.toISOString(),
         }));
+
+        // Handle active calls on disconnect
+        try {
+          // Find any RINGING or ONGOING calls involving this user
+          const activeCalls = await prisma.call.findMany({
+            where: {
+              status: { in: ["RINGING", "ONGOING"] },
+              conversation: { members: { some: { userId: ws.userId } } },
+            },
+            include: { conversation: { include: { members: true } } },
+          });
+
+          for (const call of activeCalls) {
+            const newStatus = call.status === "RINGING" ? "MISSED" : "ENDED";
+            await prisma.call.update({
+              where: { id: call.id },
+              data: { status: newStatus, endedAt: now },
+            });
+
+            // Clear timeout if exists
+            const timeout = callTimeouts.get(call.id);
+            if (timeout) { clearTimeout(timeout); callTimeouts.delete(call.id); }
+
+            await broadcastToConversation(
+              call.conversationId,
+              JSON.stringify({ type: "call_ended", callId: call.id, reason: "disconnected" })
+            );
+
+            // Send missed call notification if it was ringing
+            if (newStatus === "MISSED") {
+              const caller = await prisma.user.findUnique({ where: { id: call.callerId } });
+              if (caller) {
+                for (const member of call.conversation.members) {
+                  if (member.userId === call.callerId) continue;
+                  notifyMissedCall(
+                    member.userId,
+                    `${caller.firstName} ${caller.lastName}`,
+                    call.type
+                  ).catch(console.error);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Call cleanup on disconnect error:", err);
+        }
       }
     });
   });

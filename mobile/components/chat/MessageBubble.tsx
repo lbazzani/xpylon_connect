@@ -1,6 +1,10 @@
 import { View, Text, Image, TouchableOpacity, Alert, ActionSheetIOS, Platform } from "react-native";
+import { useState } from "react";
 import * as Clipboard from "expo-clipboard";
+import { Ionicons } from "@expo/vector-icons";
 import type { Message } from "@xpylon/shared";
+import { api } from "../../lib/api";
+import { colors } from "../../lib/theme";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -11,6 +15,7 @@ interface MessageBubbleProps {
   senderColor?: string;
   onReply?: (message: Message) => void;
   onDelete?: (messageId: string) => void;
+  onViewOpportunity?: (id: string) => void;
 }
 
 function formatFileSize(bytes: number): string {
@@ -19,7 +24,92 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function MessageBubble({ message, isOwn, showSenderName, senderColor, onReply, onDelete }: MessageBubbleProps) {
+// Parse [OPP:uuid] markers from message content
+function parseOpportunityMarkers(content: string): Array<{ type: "text"; value: string } | { type: "opp"; id: string }> {
+  const parts: Array<{ type: "text"; value: string } | { type: "opp"; id: string }> = [];
+  const regex = /\[OPP:([a-f0-9-]+)\]/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: "text", value: content.slice(lastIndex, match.index).trim() });
+    }
+    parts.push({ type: "opp", id: match[1] });
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < content.length) {
+    const remaining = content.slice(lastIndex).trim();
+    if (remaining) parts.push({ type: "text", value: remaining });
+  }
+
+  return parts;
+}
+
+function InlineOpportunityCard({ oppId, onView }: { oppId: string; onView?: (id: string) => void }) {
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      if (saved) {
+        await api.delete(`/opportunities/${oppId}/save`);
+        setSaved(false);
+      } else {
+        await api.post(`/opportunities/${oppId}/save`);
+        setSaved(true);
+      }
+    } catch {
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <View className="flex-row items-center mt-1 mb-1">
+      <TouchableOpacity
+        onPress={() => onView?.(oppId)}
+        className="flex-row items-center flex-1 py-1.5 px-2.5 bg-white/10 rounded-lg mr-1.5"
+        activeOpacity={0.7}
+      >
+        <Ionicons name="open-outline" size={13} color="rgba(255,255,255,0.7)" />
+        <Text className="text-xs text-white/70 ml-1">View details</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={handleSave}
+        disabled={saving}
+        className="py-1.5 px-2.5 rounded-lg"
+        style={{ backgroundColor: saved ? "rgba(241,90,36,0.3)" : "rgba(255,255,255,0.1)" }}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name={saved ? "bookmark" : "bookmark-outline"}
+          size={15}
+          color={saved ? colors.primary : "rgba(255,255,255,0.7)"}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// Render bold text (**text**) as actual bold
+function renderFormattedText(text: string, isOwn: boolean) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <Text key={i} className={`font-bold ${isOwn ? "text-white" : "text-gray-900"}`}>
+          {part.slice(2, -2)}
+        </Text>
+      );
+    }
+    return <Text key={i}>{part}</Text>;
+  });
+}
+
+export function MessageBubble({ message, isOwn, showSenderName, senderColor, onReply, onDelete, onViewOpportunity }: MessageBubbleProps) {
   const time = new Date(message.createdAt).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -28,6 +118,12 @@ export function MessageBubble({ message, isOwn, showSenderName, senderColor, onR
   const isDeleted = !!message.deletedAt;
   const images = message.attachments?.filter((a) => a.mimeType.startsWith("image/")) || [];
   const files = message.attachments?.filter((a) => !a.mimeType.startsWith("image/")) || [];
+
+  // Check if content has opportunity markers
+  const hasOppMarkers = message.content?.includes("[OPP:") || false;
+  const contentParts = hasOppMarkers && message.content
+    ? parseOpportunityMarkers(message.content)
+    : null;
 
   const getReceiptIcon = () => {
     if (!isOwn || isDeleted) return null;
@@ -52,7 +148,7 @@ export function MessageBubble({ message, isOwn, showSenderName, senderColor, onR
         { options, cancelButtonIndex: cancelIndex, destructiveButtonIndex: destructiveIndex },
         (index) => {
           if (options[index] === "Reply" && onReply) onReply(message);
-          if (options[index] === "Copy" && message.content) Clipboard.setString(message.content);
+          if (options[index] === "Copy" && message.content) Clipboard.setString(message.content.replace(/\[OPP:[^\]]+\]/g, "").trim());
           if (options[index] === "Delete" && onDelete) {
             Alert.alert("Delete message", "Delete this message for everyone?", [
               { text: "Cancel", style: "cancel" },
@@ -62,10 +158,9 @@ export function MessageBubble({ message, isOwn, showSenderName, senderColor, onR
         }
       );
     } else {
-      // Android fallback
       Alert.alert("Actions", undefined, [
         { text: "Reply", onPress: () => onReply?.(message) },
-        { text: "Copy", onPress: () => message.content && Clipboard.setString(message.content) },
+        { text: "Copy", onPress: () => message.content && Clipboard.setString(message.content.replace(/\[OPP:[^\]]+\]/g, "").trim()) },
         ...(isOwn && onDelete
           ? [{ text: "Delete", style: "destructive" as const, onPress: () => {
               Alert.alert("Delete message", "Delete this message for everyone?", [
@@ -158,13 +253,34 @@ export function MessageBubble({ message, isOwn, showSenderName, senderColor, onR
               </View>
             ))}
 
-            {/* Text content */}
+            {/* Text content — with opportunity card support */}
             {message.content && (
-              <Text className={`text-[15px] leading-5 px-3 ${images.length > 0 || files.length > 0 ? "pt-1" : "pt-2.5"} ${
-                isOwn ? "text-white" : "text-gray-900"
-              }`}>
-                {message.content}
-              </Text>
+              contentParts ? (
+                <View className="px-3 pt-2.5">
+                  {contentParts.map((part, idx) =>
+                    part.type === "text" ? (
+                      <Text
+                        key={idx}
+                        className={`text-[15px] leading-5 ${isOwn ? "text-white" : "text-gray-900"}`}
+                      >
+                        {renderFormattedText(part.value, isOwn)}
+                      </Text>
+                    ) : (
+                      <InlineOpportunityCard
+                        key={idx}
+                        oppId={part.id}
+                        onView={onViewOpportunity}
+                      />
+                    )
+                  )}
+                </View>
+              ) : (
+                <Text className={`text-[15px] leading-5 px-3 ${images.length > 0 || files.length > 0 ? "pt-1" : "pt-2.5"} ${
+                  isOwn ? "text-white" : "text-gray-900"
+                }`}>
+                  {renderFormattedText(message.content, isOwn)}
+                </Text>
+              )
             )}
 
             {/* Time + receipt */}

@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 const KEYS = {
   ACCESS_TOKEN: "access_token",
   REFRESH_TOKEN: "refresh_token",
+  DEMO_MODE: "demo_mode",
 } as const;
 
 // expo-secure-store doesn't work on web — fall back to localStorage
@@ -43,7 +44,21 @@ export async function getTokens() {
   return { accessToken, refreshToken };
 }
 
+export async function saveDemoMode(isDemo: boolean) {
+  if (isDemo) {
+    await setItem(KEYS.DEMO_MODE, "true");
+  } else {
+    await deleteItem(KEYS.DEMO_MODE);
+  }
+}
+
+export async function getDemoMode(): Promise<boolean> {
+  const value = await getItem(KEYS.DEMO_MODE);
+  return value === "true";
+}
+
 export async function clearTokens() {
   await deleteItem(KEYS.ACCESS_TOKEN);
   await deleteItem(KEYS.REFRESH_TOKEN);
+  await deleteItem(KEYS.DEMO_MODE);
 }

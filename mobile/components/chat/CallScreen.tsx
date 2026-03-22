@@ -1,20 +1,34 @@
-import { View, Text, TouchableOpacity, Modal, Animated, Dimensions } from "react-native";
+import { View, Text, TouchableOpacity, Modal, Animated, Dimensions, StyleSheet } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { RTCView } from "react-native-webrtc";
 import type { Call } from "@xpylon/shared";
 import { colors } from "../../lib/theme";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface CallScreenProps {
   call: Call;
   callerName: string;
   isIncoming: boolean;
   isConnected: boolean;
+  localStream: any;
+  remoteStream: any;
+  isMuted: boolean;
+  isSpeakerOn: boolean;
+  isVideoEnabled: boolean;
+  isRecording: boolean;
+  recordingRequested: boolean;
   onAccept: () => void;
   onDecline: () => void;
   onEnd: () => void;
+  onToggleMute: () => void;
+  onToggleSpeaker: () => void;
+  onToggleVideo: () => void;
+  onSwitchCamera: () => void;
+  onRequestRecording: () => void;
+  onStopRecording: () => void;
 }
 
 function CallAvatar({ name, size = 96 }: { name: string; size?: number }) {
@@ -43,7 +57,7 @@ function CallButton({
   onPress,
   color = "bg-white/15",
   iconColor = colors.white,
-  size = 60,
+  size = 56,
   active = false,
 }: {
   iconName: keyof typeof Ionicons.glyphMap;
@@ -66,7 +80,7 @@ function CallButton({
           color={active ? colors.gray900 : iconColor}
         />
       </View>
-      <Text className="text-white/70 text-xs mt-2 font-medium">{label}</Text>
+      <Text className="text-white/70 text-[10px] mt-1.5 font-medium">{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -109,15 +123,35 @@ function PulseRing({ delay = 0 }: { delay?: number }) {
   );
 }
 
-export function CallScreen({ call, callerName, isIncoming, isConnected, onAccept, onDecline, onEnd }: CallScreenProps) {
+export function CallScreen({
+  call,
+  callerName,
+  isIncoming,
+  isConnected,
+  localStream,
+  remoteStream,
+  isMuted,
+  isSpeakerOn,
+  isVideoEnabled,
+  onAccept,
+  onDecline,
+  onEnd,
+  onToggleMute,
+  onToggleSpeaker,
+  onToggleVideo,
+  onSwitchCamera,
+  onRequestRecording,
+  onStopRecording,
+  isRecording,
+  recordingRequested,
+}: CallScreenProps) {
   const [duration, setDuration] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSpeaker, setIsSpeaker] = useState(false);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(call.type === "VIDEO");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Slide-to-answer animation
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const isVideo = call.type === "VIDEO";
+  const hasRemoteVideo = isVideo && remoteStream && isConnected;
+  const hasLocalVideo = isVideo && localStream && isVideoEnabled;
 
   useEffect(() => {
     if (isConnected) {
@@ -128,7 +162,7 @@ export function CallScreen({ call, callerName, isIncoming, isConnected, onAccept
     };
   }, [isConnected]);
 
-  // Pulse animation for ringing
+  // Pulse animation for "Calling..."
   useEffect(() => {
     if (!isConnected && !isIncoming) {
       const pulse = Animated.loop(
@@ -155,16 +189,39 @@ export function CallScreen({ call, callerName, isIncoming, isConnected, onAccept
     ? "Calling..."
     : formatDuration(duration);
 
-  const callTypeLabel = call.type === "VIDEO" ? "Video call" : "Voice call";
+  const callTypeLabel = isVideo ? "Video call" : "Voice call";
 
   return (
     <Modal visible animationType="fade" statusBarTranslucent>
       <View className="flex-1" style={{ backgroundColor: "#1a1a2e" }}>
+        {/* Remote video (fullscreen background) */}
+        {hasRemoteVideo && (
+          <RTCView
+            streamURL={remoteStream.toURL()}
+            style={StyleSheet.absoluteFill}
+            objectFit="cover"
+            mirror={false}
+          />
+        )}
+
         <SafeAreaView className="flex-1">
+          {/* Top gradient overlay for video calls */}
+          {hasRemoteVideo && (
+            <View style={styles.topGradient} pointerEvents="none" />
+          )}
+
+          {/* Recording indicator */}
+          {isRecording && (
+            <View className="flex-row items-center justify-center py-2" style={{ backgroundColor: "rgba(220,38,38,0.8)" }}>
+              <View className="w-2 h-2 rounded-full bg-white mr-2" />
+              <Text className="text-white text-xs font-semibold">Recording</Text>
+            </View>
+          )}
+
           {/* Top section — call info */}
-          <View className="flex-1 items-center justify-center">
-            {/* Pulse rings while ringing */}
-            {!isConnected && (
+          <View className={`flex-1 items-center ${hasRemoteVideo ? "pt-6" : "justify-center"}`}>
+            {/* Pulse rings while ringing (voice only or no remote video) */}
+            {!isConnected && !hasRemoteVideo && (
               <View className="absolute items-center justify-center">
                 <PulseRing delay={0} />
                 <PulseRing delay={700} />
@@ -172,9 +229,12 @@ export function CallScreen({ call, callerName, isIncoming, isConnected, onAccept
               </View>
             )}
 
-            <CallAvatar name={callerName} size={96} />
+            {/* Avatar (hide when remote video is showing) */}
+            {!hasRemoteVideo && <CallAvatar name={callerName} size={96} />}
 
-            <Text className="text-white text-2xl font-bold mt-6">{callerName}</Text>
+            <Text className={`text-white text-2xl font-bold ${hasRemoteVideo ? "" : "mt-6"}`}>
+              {callerName}
+            </Text>
             <Text className="text-white/50 text-sm mt-1">{callTypeLabel}</Text>
 
             <Animated.Text
@@ -189,76 +249,101 @@ export function CallScreen({ call, callerName, isIncoming, isConnected, onAccept
             </Animated.Text>
           </View>
 
-          {/* Video preview placeholder */}
-          {isVideoEnabled && isConnected && (
-            <View
-              className="absolute top-24 right-4 w-28 h-40 rounded-2xl items-center justify-center overflow-hidden"
-              style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-            >
-              <Text className="text-white/40 text-xs">Camera</Text>
+          {/* Local video PIP (top-right) */}
+          {hasLocalVideo && isConnected && (
+            <View style={styles.localVideo}>
+              <RTCView
+                streamURL={localStream.toURL()}
+                style={{ flex: 1 }}
+                objectFit="cover"
+                mirror={true}
+                zOrder={1}
+              />
+              {/* Camera switch button */}
+              <TouchableOpacity
+                onPress={onSwitchCamera}
+                style={styles.switchCameraBtn}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="camera-reverse-outline" size={16} color={colors.white} />
+              </TouchableOpacity>
             </View>
+          )}
+
+          {/* Bottom gradient overlay for video calls */}
+          {hasRemoteVideo && (
+            <View style={styles.bottomGradient} pointerEvents="none" />
           )}
 
           {/* Bottom controls */}
           <View className="pb-8 px-6">
             {isIncoming && !isConnected ? (
-              /* ── Incoming: decline / accept ── */
-              <View>
-                <View className="flex-row justify-between px-12 mb-6">
-                  <CallButton
-                    iconName="close"
-                    label="Decline"
-                    onPress={onDecline}
-                    color="bg-red-500"
-                    size={64}
-                  />
-                  <CallButton
-                    iconName="call"
-                    label="Accept"
-                    onPress={onAccept}
-                    color="bg-green-500"
-                    size={64}
-                  />
-                </View>
+              /* Incoming: decline / accept */
+              <View className="flex-row justify-between px-12 mb-6">
+                <CallButton
+                  iconName="close"
+                  label="Decline"
+                  onPress={onDecline}
+                  color="bg-red-500"
+                  size={64}
+                />
+                <CallButton
+                  iconName="call"
+                  label="Accept"
+                  onPress={onAccept}
+                  color="bg-green-500"
+                  size={64}
+                />
               </View>
             ) : (
-              /* ── Active / outgoing controls ── */
+              /* Active / outgoing controls */
               <View>
-                <View className="flex-row justify-between px-4 mb-8">
+                <View className="flex-row justify-evenly mb-8">
                   <CallButton
                     iconName={isMuted ? "mic-off" : "mic"}
                     label={isMuted ? "Unmute" : "Mute"}
-                    onPress={() => setIsMuted(!isMuted)}
+                    onPress={onToggleMute}
                     active={isMuted}
                   />
                   <CallButton
-                    iconName={isSpeaker ? "volume-high" : "volume-medium"}
+                    iconName={isSpeakerOn ? "volume-high" : "volume-medium"}
                     label="Speaker"
-                    onPress={() => setIsSpeaker(!isSpeaker)}
-                    active={isSpeaker}
+                    onPress={onToggleSpeaker}
+                    active={isSpeakerOn}
                   />
-                  {call.type === "VIDEO" && (
+                  {isVideo && (
                     <CallButton
                       iconName={isVideoEnabled ? "videocam" : "videocam-off"}
                       label={isVideoEnabled ? "Camera on" : "Camera off"}
-                      onPress={() => setIsVideoEnabled(!isVideoEnabled)}
+                      onPress={onToggleVideo}
                       active={!isVideoEnabled}
                     />
                   )}
-                  <CallButton
-                    iconName="ellipsis-horizontal"
-                    label="More"
-                    onPress={() => {}}
-                  />
+                  {isVideo && (
+                    <CallButton
+                      iconName="camera-reverse-outline"
+                      label="Flip"
+                      onPress={onSwitchCamera}
+                    />
+                  )}
+                  {isConnected && (
+                    <CallButton
+                      iconName={isRecording ? "stop-circle" : "radio-button-on"}
+                      label={isRecording ? "Stop" : recordingRequested ? "Waiting..." : "Record"}
+                      onPress={isRecording ? onStopRecording : onRequestRecording}
+                      active={isRecording}
+                      iconColor={isRecording ? "#DC2626" : recordingRequested ? "#D97706" : colors.white}
+                    />
+                  )}
                 </View>
 
-                {/* End call button */}
+                {/* End call */}
                 <TouchableOpacity
                   onPress={onEnd}
                   className="self-center w-16 h-16 rounded-full bg-red-500 items-center justify-center"
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="call" size={24} color={colors.white} />
+                  <Ionicons name="call" size={24} color={colors.white} style={{ transform: [{ rotate: "135deg" }] }} />
                 </TouchableOpacity>
                 <Text className="text-white/40 text-xs text-center mt-2">End call</Text>
               </View>
@@ -269,3 +354,47 @@ export function CallScreen({ call, callerName, isIncoming, isConnected, onAccept
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  localVideo: {
+    position: "absolute",
+    top: 100,
+    right: 16,
+    width: 120,
+    height: 170,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  switchCameraBtn: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 150,
+    backgroundColor: "transparent",
+    // Use a simple semi-transparent overlay since LinearGradient needs an extra package
+    opacity: 0.6,
+  },
+  bottomGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    backgroundColor: "rgba(26, 26, 46, 0.7)",
+  },
+});

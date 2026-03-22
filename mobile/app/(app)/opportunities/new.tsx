@@ -63,7 +63,7 @@ export default function NewOpportunityScreen() {
     if (!isValid) return;
     setLoading(true);
     try {
-      await api.post("/opportunities", {
+      const data = await api.post("/opportunities", {
         title: title.trim(),
         description: description.trim(),
         type,
@@ -71,9 +71,18 @@ export default function NewOpportunityScreen() {
         visibility,
         commMode,
       });
-      router.back();
-    } catch (err) {
-      Alert.alert("Error", err instanceof Error ? err.message : "Failed to create");
+      if (data.opportunity?.status === "UNDER_REVIEW") {
+        Alert.alert(
+          "Submitted for review",
+          "Your opportunity has been submitted and is under compliance review. You'll be notified once it's approved.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      } else {
+        router.back();
+      }
+    } catch (err: any) {
+      const message = err?.response?.reason || err?.response?.error || (err instanceof Error ? err.message : "Failed to create");
+      Alert.alert("Error", message);
     } finally {
       setLoading(false);
     }

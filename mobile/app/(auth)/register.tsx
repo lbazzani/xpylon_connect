@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { CompanyPicker } from "../../components/ui/CompanyPicker";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import { colors } from "../../lib/theme";
@@ -12,17 +13,17 @@ export default function RegisterScreen() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [companyName, setCompanyName] = useState("");
+  const [company, setCompany] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const isValid = firstName.trim() && lastName.trim() && emailValid && companyName.trim();
+  const isValid = firstName.trim() && lastName.trim() && emailValid && company !== null;
 
   async function handleSubmit() {
-    if (!isValid) return;
+    if (!isValid || !company) return;
     if (!emailValid) {
       setError("Please enter a valid email address");
       return;
@@ -30,12 +31,19 @@ export default function RegisterScreen() {
     setLoading(true);
     setError("");
     try {
-      const { user } = await api.post("/auth/register", {
+      // If company has an ID, use it; otherwise send the name for creation
+      const body: any = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
-        companyName: companyName.trim(),
-      });
+      };
+      if (company.id) {
+        body.companyId = company.id;
+      } else {
+        body.companyName = company.name;
+      }
+
+      const { user } = await api.post("/auth/register", body);
       setUser(user);
       router.replace("/(auth)/profile-setup");
     } catch (err) {
@@ -118,13 +126,12 @@ export default function RegisterScreen() {
               autoCorrect={false}
             />
 
-            <Input
-              label="Company *"
-              placeholder="Your company name"
-              value={companyName}
-              onChangeText={setCompanyName}
-              autoCapitalize="words"
-            />
+            <View style={{ zIndex: 100 }}>
+              <CompanyPicker
+                value=""
+                onSelect={setCompany}
+              />
+            </View>
 
             {error ? (
               <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/auth";
-import { getTokens, saveTokens, clearTokens } from "../lib/storage";
+import { getTokens, saveTokens, clearTokens, saveDemoMode, getDemoMode } from "../lib/storage";
 import { api } from "../lib/api";
 
 export function useAuth() {
-  const { isAuthenticated, user, setTokens, setUser, logout: storeLogout } = useAuthStore();
+  const { isAuthenticated, user, isDemo, setTokens, setUser, setDemo, logout: storeLogout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -14,8 +14,10 @@ export function useAuth() {
   async function loadStoredAuth() {
     try {
       const tokens = await getTokens();
+      const demoMode = await getDemoMode();
       if (tokens.accessToken && tokens.refreshToken) {
         setTokens(tokens.accessToken, tokens.refreshToken);
+        if (demoMode) setDemo(true);
         const { user } = await api.get("/users/me");
         setUser(user);
       }
@@ -26,8 +28,12 @@ export function useAuth() {
     }
   }
 
-  async function login(accessToken: string, refreshToken: string) {
+  async function login(accessToken: string, refreshToken: string, demoMode?: boolean) {
     await saveTokens(accessToken, refreshToken);
+    if (demoMode) {
+      await saveDemoMode(true);
+      setDemo(true);
+    }
     setTokens(accessToken, refreshToken);
     try {
       const { user } = await api.get("/users/me");
@@ -40,5 +46,5 @@ export function useAuth() {
     storeLogout();
   }
 
-  return { isAuthenticated, user, isLoading, login, logout };
+  return { isAuthenticated, user, isDemo, isLoading, login, logout };
 }

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xpylon Connect — The intelligent B2B networking platform</title>
+  <meta name="description" content="Find, connect, and collaborate with the right business contacts. Powered by AI, built for privacy, designed for results.">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { primary: '#F15A24', dark: '#1B1B1B' } } }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .gradient-hero { background: linear-gradient(135deg, #1B1B1B 0%, #2D2D2D 100%); }
+    .gradient-accent { background: linear-gradient(135deg, #F15A24 0%, #FF7B4F 100%); }
+
+    /* ── Phone Mockup ── */
+    .phone-frame {
+      width: 280px; height: 560px;
+      border-radius: 40px; border: 6px solid #1B1B1B;
+      background: #fff; position: relative; overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.15), inset 0 0 0 2px #333;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 28px; background: #1B1B1B;
+      border-radius: 0 0 20px 20px; z-index: 10;
+    }
+    .phone-screen { padding: 36px 0 0; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* ── Chat animations ── */
+    .chat-msg { opacity: 0; transform: translateY(16px) scale(0.96); }
+    .scene-active .chat-msg { animation: msgIn 0.4s ease forwards; }
+    @keyframes msgIn { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: #9CA3AF; display: inline-block; margin: 0 2px; }
+    .scene-active .typing-dot { animation: dotPulse 1.2s infinite; }
+    .scene-active .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .scene-active .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotPulse { 0%,60%,100% { opacity: 0.3; transform: scale(0.8); } 30% { opacity: 1; transform: scale(1); } }
+
+    /* ── Match card animations ── */
+    .match-card { opacity: 0; transform: translateX(-20px); }
+    .scene-active .match-card { animation: cardSlideIn 0.5s ease forwards; }
+    @keyframes cardSlideIn { to { opacity: 1; transform: translateX(0); } }
+
+    .match-bar-fill { width: 0; height: 100%; border-radius: 4px; }
+    .scene-active .match-bar-fill { animation: barFill 0.8s ease forwards; }
+    @keyframes barFill { to { width: var(--pct); } }
+
+    /* ── Call animations ── */
+    .pulse-ring { position: absolute; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); }
+    .scene-active .pulse-ring { animation: pulseOut 2s infinite; }
+    @keyframes pulseOut { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.2); opacity: 0; } }
+
+    .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #DC2626; }
+    .scene-active .rec-dot { animation: recBlink 1s infinite; }
+    @keyframes recBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* ── Summary animations ── */
+    .summary-line { opacity: 0; transform: translateY(8px); }
+    .scene-active .summary-line { animation: lineIn 0.35s ease forwards; }
+    @keyframes lineIn { to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Scan animations ── */
+    .scan-line { position: absolute; left: 10%; right: 10%; height: 2px; background: #F15A24; opacity: 0; }
+    .scene-active .scan-line { animation: scanMove 2s ease-in-out infinite; }
+    @keyframes scanMove { 0% { top: 20%; opacity: 0; } 10% { opacity: 0.8; } 90% { opacity: 0.8; } 100% { top: 75%; opacity: 0; } }
+
+    .scan-highlight { position: absolute; border: 2px solid #F15A24; border-radius: 8px; opacity: 0; }
+    .scene-active .scan-highlight { animation: highlightIn 0.5s ease forwards; }
+    @keyframes highlightIn { to { opacity: 1; } }
+
+    /* ── Scene layout ── */
+    .scene-container { opacity: 0; transform: translateY(40px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .scene-container.scene-visible { opacity: 1; transform: translateY(0); }
+
+    /* ── Notification animation ── */
+    .notif-card { opacity: 0; transform: translateY(-30px); }
+    .scene-active .notif-card { animation: notifDrop 0.5s ease forwards; }
+    @keyframes notifDrop { to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Approved badge ── */
+    .badge-pop { opacity: 0; transform: scale(0.5); }
+    .scene-active .badge-pop { animation: badgePop 0.4s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+    @keyframes badgePop { to { opacity: 1; transform: scale(1); } }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased">
+
+  <!-- Nav -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3"><img src="/assets/logo.png" alt="Xpylon Connect" class="h-8"></a>
+      <div class="flex items-center gap-4">
+        <a href="#use-cases" class="text-sm text-gray-500 hover:text-gray-900 hidden sm:block">Use Cases</a>
+        <a href="#how-it-works" class="text-sm text-gray-500 hover:text-gray-900 hidden sm:block">How it works</a>
+        <a href="/privacy" class="text-sm text-gray-500 hover:text-gray-900 hidden sm:block">Privacy</a>
+        <a href="/install" class="text-sm font-semibold text-white bg-dark px-5 py-2 rounded-full hover:bg-gray-800 transition">Get the app</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="gradient-hero text-white pt-32 pb-20 px-6">
+    <div class="max-w-4xl mx-auto text-center">
+      <div class="inline-block px-4 py-1.5 rounded-full bg-white/10 text-sm text-white/80 mb-6">Powered by AI</div>
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">The intelligent B2B<br>networking platform</h1>
+      <p class="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed">Find, connect, and collaborate with the right business contacts. Smart matching, professional chat, and AI-powered opportunity discovery — all in one app.</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/install" class="gradient-accent text-white font-semibold px-8 py-3.5 rounded-full text-center hover:opacity-90 transition">Download free</a>
+        <a href="#use-cases" class="border border-white/20 text-white font-medium px-8 py-3.5 rounded-full text-center hover:bg-white/10 transition">See how it works</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Cases (rendered by JS engine) -->
+  <section id="use-cases" class="py-16 px-6">
+    <div class="text-center mb-4">
+      <h2 class="text-3xl sm:text-4xl font-bold mb-4">See it in action</h2>
+      <p class="text-gray-500 text-lg max-w-2xl mx-auto">Every feature designed to help you close more deals, faster.</p>
+    </div>
+    <div id="scenes-container"></div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how-it-works" class="py-20 px-6 bg-gray-50">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold mb-4">How it works</h2>
+        <p class="text-gray-500 text-lg">Get started in minutes, not hours.</p>
+      </div>
+      <div class="space-y-8">
+        <div class="flex gap-6 items-start">
+          <div class="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-white font-bold text-sm flex-shrink-0">1</div>
+          <div><h3 class="font-semibold text-lg mb-1">Sign in and chat with the AI assistant</h3><p class="text-gray-500 leading-relaxed">Enter your phone number and the Xpylon assistant guides you through profile setup with a natural conversation.</p></div>
+        </div>
+        <div class="flex gap-6 items-start">
+          <div class="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-white font-bold text-sm flex-shrink-0">2</div>
+          <div><h3 class="font-semibold text-lg mb-1">Get matched with relevant professionals</h3><p class="text-gray-500 leading-relaxed">AI analyzes your role, industry, and interests to find professionals and opportunities that match your goals.</p></div>
+        </div>
+        <div class="flex gap-6 items-start">
+          <div class="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-white font-bold text-sm flex-shrink-0">3</div>
+          <div><h3 class="font-semibold text-lg mb-1">Connect, chat, and close deals</h3><p class="text-gray-500 leading-relaxed">Accept connections, start conversations, make calls, and let the AI summarize discussions and track follow-ups.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download CTA -->
+  <section id="download" class="py-20 px-6">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl sm:text-4xl font-bold mb-4">Ready to grow your network?</h2>
+      <p class="text-gray-500 text-lg mb-10">Download Xpylon Connect and let the AI assistant guide you from there.</p>
+      <a href="/install" class="inline-flex items-center justify-center gap-3 bg-dark text-white font-semibold px-10 py-4 rounded-2xl hover:bg-gray-800 transition mb-4">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        Download the app
+      </a>
+      <p class="text-sm text-gray-400">Available for Android and iOS. Free to use.</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-100 py-8 px-6">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2"><img src="/assets/logo.png" alt="Xpylon" class="h-6"><span class="text-sm text-gray-400">Connect</span></div>
+      <div class="flex items-center gap-6">
+        <a href="/privacy" class="text-sm text-gray-400 hover:text-gray-600">Privacy Policy</a>
+        <a href="/install" class="text-sm text-gray-400 hover:text-gray-600">Download</a>
+      </div>
+      <p class="text-sm text-gray-400">&copy; 2026 Xpylon Ltd. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- Scene Engine: Storyboard + Renderer     -->
+  <!-- ═══════════════════════════════════════ -->
+  <script>
+  const SCENES = [
+    {
+      id: "onboarding",
+      badge: "AI Onboarding",
+      badgeColor: "#F15A24",
+      title: "Meet your AI networking assistant",
+      description: "From your first login, the Xpylon assistant guides you through profile setup with a natural conversation. No forms — just tell it about yourself.",
+      bullets: ["Conversational profile building", "AI suggests improvements to your bio", "Profile automatically optimized for matching"],
+      position: "right",
+      phone: {
+        type: "chat",
+        header: { name: "Xpylon Assistant", status: "online", color: "#F15A24" },
+        messages: [
+          { from: "bot", text: "Hi! I'm Xpylon, your networking assistant. Let's set up your profile.", delay: 0 },
+          { from: "user", text: "I'm CEO at TechVentures, focused on AI for manufacturing", delay: 1500 },
+          { from: "bot", text: "Great! I've optimized your profile. I found 3 professionals who match your interests.", delay: 3200 },
+        ]
+      }
+    },
+    {
+      id: "matching",
+      badge: "Smart Matching",
+      badgeColor: "#3B82F6",
+      title: "AI finds the right people for you",
+      description: "No manual searching. Our AI analyzes your profile to surface the most relevant professionals — with anonymized profiles to protect privacy until you connect.",
+      bullets: ["Relevance scoring for every suggestion", "Anonymized until you accept", "Quality over quantity"],
+      position: "left",
+      phone: {
+        type: "match",
+        header: { name: "Suggested for you" },
+        matches: [
+          { initials: "EF", color: "#10B981", role: "Head of Distribution", industry: "FMCG & Retail", match: 92, delay: 400 },
+          { initials: "JC", color: "#3B82F6", role: "Investment Director", industry: "Finance & VC", match: 87, delay: 900 },
+          { initials: "SA", color: "#8B5CF6", role: "Supply Chain Manager", industry: "Manufacturing", match: 81, delay: 1400 },
+        ]
+      }
+    },
+    {
+      id: "opportunities",
+      badge: "Opportunity Discovery",
+      badgeColor: "#10B981",
+      title: "Find deals through conversation",
+      description: "Ask the assistant to search for business opportunities. Results are ranked by AI relevance and you can save them directly from the chat.",
+      bullets: ["Natural language search", "AI relevance ranking", "Save & bookmark from chat"],
+      position: "right",
+      phone: {
+        type: "chat",
+        header: { name: "Xpylon Assistant", status: "online", color: "#F15A24" },
+        messages: [
+          { from: "user", text: "Find me distribution partners in Europe", delay: 0 },
+          { from: "bot", text: "I found 2 opportunities matching your search:", delay: 1400 },
+          { from: "opp", title: "EU Distribution Network", type: "Partnership", match: 91, delay: 2600 },
+          { from: "opp", title: "Premium Food Export", type: "Distribution", match: 84, delay: 3200 },
+        ]
+      }
+    },
+    {
+      id: "chat-calls",
+      badge: "Chat & Calls",
+      badgeColor: "#6366F1",
+      title: "Professional communication, built in",
+      description: "WhatsApp-level messaging with read receipts, typing indicators, and file sharing. Plus voice and video calls with consent-based recording.",
+      bullets: ["Reply threads & read receipts", "Voice & video calls", "Consent-based call recording"],
+      position: "left",
+      phone: {
+        type: "call",
+        header: { name: "Elena Fischer" },
+        callState: "connected",
+        callType: "VIDEO",
+        duration: "03:42",
+        recording: true,
+      }
+    },
+    {
+      id: "summary",
+      badge: "AI Summaries",
+      badgeColor: "#F59E0B",
+      title: "Every conversation, made actionable",
+      description: "After a call or in any chat, tap to get an AI summary. Topics, decisions, and next steps — extracted instantly, with follow-up reminders proposed automatically.",
+      bullets: ["Call transcription via AI", "Structured business summary", "Automated follow-up reminders"],
+      position: "right",
+      phone: {
+        type: "summary",
+        header: { name: "Call Summary" },
+        summary: {
+          duration: "12 min call",
+          topics: ["Distribution agreement for Q3", "Pricing structure review"],
+          decisions: ["Agreed on 15% margin for trial"],
+          nextSteps: ["Send revised contract by Friday", "Schedule follow-up April 5"],
+        }
+      }
+    },
+    {
+      id: "scan",
+      badge: "Business Cards",
+      badgeColor: "#EC4899",
+      title: "Snap cards, import contacts in batch",
+      description: "Met people at a conference? Select multiple business card photos at once — AI extracts the details from each card, queues them for processing, and lets you review and send invites one by one. The original card image is saved with each contact.",
+      bullets: ["Batch import: scan multiple cards at once", "AI extracts name, role, company, phone, email", "Review & edit before sending each invite", "Business card image saved for future reference"],
+      position: "left",
+      phone: {
+        type: "scan",
+        card: { name: "Marco Rossi", role: "CEO", company: "TechVentures srl", email: "m.rossi@techventures.it" },
+      }
+    },
+    {
+      id: "compliance",
+      badge: "Trust & Safety",
+      badgeColor: "#059669",
+      title: "Every opportunity, verified",
+      description: "AI screens every listing for scams, fraud, and policy violations. Legitimate proposals go live instantly; suspicious content is flagged for human review.",
+      bullets: ["AI-powered compliance screening", "Scam & fraud detection", "Human review for edge cases"],
+      position: "right",
+      phone: {
+        type: "compliance",
+        opportunity: { title: "AI Quality Control System", type: "Partnership", author: "Marco R." },
+      }
+    },
+  ];
+
+  // ── Render Engine ──
+  function renderPhone(scene) {
+    const p = scene.phone;
+    let screenHTML = '';
+
+    // Phone header
+    if (p.header) {
+      const statusDot = p.header.status === 'online' ? '<span class="w-2 h-2 rounded-full bg-green-400 mr-1"></span><span class="text-green-500 text-[10px]">online</span>' : '';
+      screenHTML += `<div class="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+        <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background:${p.header.color || '#6B7280'}">X</div>
+        <div class="flex-1"><div class="text-[11px] font-semibold text-gray-900">${p.header.name}</div><div class="flex items-center">${statusDot}</div></div>
+      </div>`;
+    }
+
+    if (p.type === 'chat') {
+      screenHTML += '<div class="flex-1 px-3 py-2 space-y-2 overflow-hidden">';
+      p.messages.forEach((m, i) => {
+        const d = m.delay + 500;
+        if (m.from === 'bot') {
+          screenHTML += `<div class="chat-msg flex gap-1.5" style="animation-delay:${d}ms"><div class="bg-gray-100 rounded-xl rounded-tl-sm px-2.5 py-1.5 max-w-[85%]"><p class="text-[10px] text-gray-700 leading-relaxed">${m.text}</p></div></div>`;
+        } else if (m.from === 'user') {
+          screenHTML += `<div class="chat-msg flex justify-end" style="animation-delay:${d}ms"><div class="rounded-xl rounded-tr-sm px-2.5 py-1.5 max-w-[80%]" style="background:#F15A24"><p class="text-[10px] text-white leading-relaxed">${m.text}</p></div></div>`;
+        } else if (m.from === 'opp') {
+          screenHTML += `<div class="chat-msg" style="animation-delay:${d}ms"><div class="bg-white border border-gray-200 rounded-xl p-2 max-w-[90%]">
+            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-semibold text-primary">${m.type}</span><span class="text-[9px] text-primary font-bold">${m.match}%</span></div>
+            <p class="text-[10px] font-semibold text-gray-900">${m.title}</p>
+            <div class="flex justify-end mt-1"><div class="w-5 h-5 rounded-md bg-gray-50 flex items-center justify-center"><svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg></div></div>
+          </div></div>`;
+        }
+      });
+      // Typing indicator
+      const lastDelay = p.messages[p.messages.length - 1].delay;
+      if (p.messages[p.messages.length - 1].from !== 'user') {
+        screenHTML += `<div class="chat-msg flex gap-1.5" style="animation-delay:${lastDelay + 1500}ms"><div class="bg-gray-100 rounded-xl px-3 py-2"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div></div>`;
+      }
+      screenHTML += '</div>';
+    }
+
+    else if (p.type === 'match') {
+      screenHTML += '<div class="flex-1 px-3 py-3 space-y-2.5 overflow-hidden">';
+      p.matches.forEach((m) => {
+        screenHTML += `<div class="match-card bg-white border border-gray-100 rounded-xl p-2.5 flex items-center gap-2.5" style="animation-delay:${m.delay + 500}ms">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0" style="background:${m.color}">${m.initials}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[11px] font-semibold text-gray-900">${m.role}</div>
+            <div class="text-[9px] text-gray-400">${m.industry}</div>
+            <div class="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="match-bar-fill bg-primary" style="--pct:${m.match}%;animation-delay:${m.delay + 800}ms"></div></div>
+          </div>
+          <div class="text-[11px] font-bold text-primary">${m.match}%</div>
+        </div>`;
+      });
+      screenHTML += '</div>';
+    }
+
+    else if (p.type === 'call') {
+      screenHTML += `<div class="flex-1 flex flex-col items-center justify-center text-center" style="background:#1a1a2e">
+        <div class="relative mb-4">
+          <div class="pulse-ring w-20 h-20" style="animation-delay:0s;top:0;left:0"></div>
+          <div class="pulse-ring w-20 h-20" style="animation-delay:0.7s;top:0;left:0"></div>
+          <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto"><span class="text-white font-bold text-lg">EF</span></div>
+        </div>
+        <div class="text-white font-bold text-sm">${p.header.name}</div>
+        <div class="text-white/50 text-[10px] mt-0.5">${p.callType} call</div>
+        <div class="text-white/70 text-xs mt-1 font-light">${p.duration}</div>
+        ${p.recording ? `<div class="flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full" style="background:rgba(220,38,38,0.8)"><div class="rec-dot"></div><span class="text-white text-[9px] font-semibold">Recording</span></div>` : ''}
+        <div class="flex gap-5 mt-6">
+          <div class="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg></div>
+          <div class="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 12h.01"/></svg></div>
+          <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z"/></svg></div>
+        </div>
+      </div>`;
+    }
+
+    else if (p.type === 'summary') {
+      const s = p.summary;
+      screenHTML += `<div class="flex-1 px-3 py-3 overflow-hidden bg-gray-50">
+        <div class="bg-white rounded-xl border border-gray-100 p-3">
+          <div class="summary-line flex items-center gap-1.5 mb-2" style="animation-delay:500ms">
+            <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="text-[10px] font-bold text-gray-900">Call Summary</span>
+            <span class="text-[8px] text-gray-400 ml-auto">${s.duration}</span>
+          </div>
+          <div class="summary-line mb-2" style="animation-delay:900ms"><div class="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Topics</div>${s.topics.map(t => `<div class="text-[9px] text-gray-700 flex items-start gap-1"><span class="text-primary mt-0.5">&#8226;</span>${t}</div>`).join('')}</div>
+          <div class="summary-line mb-2" style="animation-delay:1400ms"><div class="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Decisions</div>${s.decisions.map(d => `<div class="text-[9px] text-gray-700 flex items-start gap-1"><span class="text-green-500 mt-0.5">&#10003;</span>${d}</div>`).join('')}</div>
+          <div class="summary-line mb-2" style="animation-delay:1900ms"><div class="text-[9px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Next Steps</div>${s.nextSteps.map(n => `<div class="text-[9px] text-gray-700 flex items-start gap-1"><span class="text-amber-500 mt-0.5">&#9679;</span>${n}</div>`).join('')}</div>
+          <div class="summary-line mt-3 pt-2 border-t border-gray-50" style="animation-delay:2500ms">
+            <div class="flex items-center gap-1.5 bg-amber-50 rounded-lg px-2 py-1.5">
+              <svg class="w-3 h-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span class="text-[8px] text-amber-700">Set reminder for "Send contract by Friday"?</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    else if (p.type === 'scan') {
+      const c = p.card;
+      screenHTML += `<div class="flex-1 relative overflow-hidden" style="background:#1a1a2e">
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="w-[85%] bg-white rounded-lg p-3 shadow-lg relative">
+            <div class="scan-highlight" style="inset:-4px;animation-delay:1500ms"></div>
+            <div class="text-[11px] font-bold text-gray-900">${c.name}</div>
+            <div class="text-[9px] text-gray-500">${c.role} at ${c.company}</div>
+            <div class="text-[8px] text-gray-400 mt-1">${c.email}</div>
+            <div class="mt-2 badge-pop flex items-center gap-1 bg-green-50 rounded-md px-2 py-1 w-fit" style="animation-delay:2200ms">
+              <svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span class="text-[8px] text-green-700 font-semibold">Contact added</span>
+            </div>
+          </div>
+        </div>
+        <div class="scan-line" style="animation-delay:300ms"></div>
+        <div class="absolute top-3 left-3 flex items-center gap-1.5">
+          <div class="w-2 h-2 rounded-full bg-red-500"></div>
+          <span class="text-white/60 text-[9px]">Scanning...</span>
+        </div>
+      </div>`;
+    }
+
+    else if (p.type === 'compliance') {
+      const o = p.opportunity;
+      screenHTML += `<div class="flex-1 px-3 py-4 bg-gray-50 overflow-hidden">
+        <div class="bg-white border border-gray-100 rounded-xl p-3 mb-3">
+          <div class="text-[9px] text-primary font-semibold uppercase tracking-wider mb-1">${o.type}</div>
+          <div class="text-[11px] font-bold text-gray-900 mb-1">${o.title}</div>
+          <div class="text-[9px] text-gray-400">by ${o.author}</div>
+        </div>
+        <div class="summary-line flex items-center gap-2 bg-white border border-gray-100 rounded-xl p-2.5 mb-2" style="animation-delay:800ms">
+          <div class="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
+          <div><div class="text-[9px] font-semibold text-gray-700">AI screening content...</div><div class="text-[8px] text-gray-400">Checking for policy compliance</div></div>
+        </div>
+        <div class="summary-line flex items-center gap-2 bg-white border border-gray-100 rounded-xl p-2.5 mb-2" style="animation-delay:1500ms">
+          <div class="w-6 h-6 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div>
+          <div><div class="text-[9px] font-semibold text-green-700">Content approved</div><div class="text-[8px] text-gray-400">No policy violations detected</div></div>
+        </div>
+        <div class="badge-pop bg-green-50 border border-green-200 rounded-xl p-2.5 text-center" style="animation-delay:2200ms">
+          <div class="text-[10px] font-bold text-green-700">Published</div>
+          <div class="text-[8px] text-green-600">Now visible to matching professionals</div>
+        </div>
+      </div>`;
+    }
+
+    return `<div class="phone-frame mx-auto"><div class="phone-notch"></div><div class="phone-screen">${screenHTML}</div></div>`;
+  }
+
+  function renderScene(scene) {
+    const isRight = scene.position === 'right';
+    const bulletsHTML = scene.bullets.map(b => `<li class="flex items-start gap-2"><svg class="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>${b}</span></li>`).join('');
+
+    const textSide = `<div class="flex-1 ${isRight ? 'lg:pr-12' : 'lg:pl-12'}">
+      <div class="inline-block px-3 py-1 rounded-full text-[11px] font-semibold mb-4 text-white" style="background:${scene.badgeColor}">${scene.badge}</div>
+      <h3 class="text-2xl sm:text-3xl font-bold mb-4 text-gray-900">${scene.title}</h3>
+      <p class="text-gray-500 leading-relaxed mb-6">${scene.description}</p>
+      <ul class="space-y-2.5 text-sm text-gray-600">${bulletsHTML}</ul>
+    </div>`;
+
+    const phoneSide = `<div class="flex-shrink-0">${renderPhone(scene)}</div>`;
+
+    return `<div class="scene-container max-w-5xl mx-auto py-16 flex flex-col lg:flex-row items-center gap-12 ${isRight ? '' : 'lg:flex-row-reverse'}" data-scene="${scene.id}">
+      ${isRight ? textSide + phoneSide : phoneSide + textSide}
+    </div>`;
+  }
+
+  // ── Init ──
+  document.getElementById('scenes-container').innerHTML = SCENES.map(renderScene).join('');
+
+  // ── Intersection Observer for scroll-triggered animations ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('scene-visible');
+        // Add scene-active to phone for CSS animations
+        const phone = entry.target.querySelector('.phone-frame');
+        if (phone) phone.classList.add('scene-active');
+      }
+    });
+  }, { threshold: 0.2, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.scene-container').forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>

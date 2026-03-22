@@ -87,6 +87,17 @@ router.get("/grouped", async (req, res) => {
   }
 });
 
+// GET /conversations/bot — get or create the general bot conversation
+router.get("/bot", async (req, res) => {
+  try {
+    const { createWelcomeConversation } = await import("../lib/bot");
+    const conversationId = await createWelcomeConversation(req.userId!);
+    res.json({ conversationId });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to get bot conversation" });
+  }
+});
+
 // POST /conversations/bot-opportunity — create opportunity conversation with bot
 router.post("/bot-opportunity", async (req, res) => {
   try {
@@ -299,6 +310,37 @@ router.post("/:id/members", async (req, res) => {
     res.status(201).json({ member });
   } catch (err) {
     res.status(500).json({ error: "Failed to add member" });
+  }
+});
+
+// POST /conversations/:id/summarize — On-demand chat summary
+router.post("/:id/summarize", async (req, res) => {
+  try {
+    const convId = req.params.id as string;
+    if (!(await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: convId, userId: req.userId! } },
+    }))) {
+      res.status(403).json({ error: "Not a member" });
+      return;
+    }
+
+    const { summarizeConversationMessages, postSummaryToConversation } = await import("../lib/transcription");
+    const summary = await summarizeConversationMessages(convId);
+
+    if (summary.topicsDiscussed.length === 0 && summary.keyDecisions.length === 0 && summary.nextSteps.length === 0) {
+      res.json({ summary: null, message: "No professional content to summarize" });
+      return;
+    }
+
+    const msgCount = await prisma.message.count({
+      where: { conversationId: convId, deletedAt: null, type: "TEXT" },
+    });
+
+    await postSummaryToConversation(convId, summary, "chat", `${msgCount} messages`);
+    res.json({ summary, success: true });
+  } catch (err) {
+    console.error("Chat summarize error:", err);
+    res.status(500).json({ error: "Failed to summarize conversation" });
   }
 });
 

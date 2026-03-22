@@ -119,6 +119,23 @@
 
 ---
 
+## 7b. Compliance Review
+
+**Tagline:** Trusted opportunities, verified by AI and our team
+
+**Description:** Every opportunity posted on Xpylon Connect goes through an AI-powered compliance review. Legitimate business proposals are published instantly, while suspicious or potentially harmful content is flagged for manual review by our team — keeping the platform safe and professional.
+
+**Key points:**
+- AI automatically screens every opportunity for scams, fraud, and policy violations
+- Clearly illegitimate content is blocked before it ever reaches the platform
+- Borderline cases are flagged for human review — our team reviews them within 24 hours
+- Authors are notified when their opportunity is approved or if it needs adjustment
+
+**Icon:** shield-checkmark-outline
+**Accent icon:** eye-outline
+
+---
+
 ## 8. Get Started
 
 **Tagline:** Ready to grow your network?
