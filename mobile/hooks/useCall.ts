@@ -3,7 +3,8 @@ import { PermissionsAndroid, Platform, Alert } from "react-native";
 import { useWebRTC } from "./useWebRTC";
 import { useRecording } from "./useRecording";
 import { useAuthStore } from "../store/auth";
-import type { Call, CallType, WsServerEvent, WsClientEvent } from "@xpylon/shared";
+import { CallType } from "@xpylon/shared";
+import type { Call, WsServerEvent, WsClientEvent } from "@xpylon/shared";
 
 interface CallState {
   activeCall: Call | null;
@@ -35,7 +36,7 @@ export function useCall(send: (event: WsClientEvent) => void) {
     isRecordingInitiator: false,
   });
   const user = useAuthStore((s) => s.user);
-  const callTypeRef = useRef<CallType>("VOICE");
+  const callTypeRef = useRef<CallType>(CallType.VOICE);
   const isInitiatorRef = useRef(false);
 
   const webrtc = useWebRTC({

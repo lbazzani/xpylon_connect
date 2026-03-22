@@ -29,7 +29,7 @@ export function CompanyPicker({
   const [results, setResults] = useState<CompanyResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [isSelected, setIsSelected] = useState(!!selectedId);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     setQuery(value);

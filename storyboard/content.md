@@ -27,7 +27,7 @@
 
 **Tagline:** The reality
 
-**Description:** Real business happens when a company in Lecco finds a distributor in Houston. When a German entrepreneur buys an Italian SME. When two strangers trust each other enough to sign a contract. People make it happen.
+**Description:** Real business happens when a manufacturer in Milan finds a distributor in Houston. A Berlin startup closes an investment from Singapore. Two professionals on opposite sides of the world trust each other enough to sign. People make it happen.
 
 **Key points:**
 - AI finds the right people. You build the relationship.

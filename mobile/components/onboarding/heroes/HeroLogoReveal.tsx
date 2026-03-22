@@ -100,8 +100,8 @@ function OrbitDot({
   radius,
 }: {
   index: number;
-  angle: Animated.SharedValue<number>;
-  radius: Animated.SharedValue<number>;
+  angle: import("react-native-reanimated").SharedValue<number>;
+  radius: import("react-native-reanimated").SharedValue<number>;
 }) {
   const offset = (index * Math.PI * 2) / DOT_COUNT;
 

@@ -58,14 +58,14 @@ export function useWebRTC({ callId, callType, isInitiator, send }: UseWebRTCOpti
       });
 
       // Handle remote tracks
-      pc.addEventListener("track", (event: any) => {
+      (pc as any).ontrack = (event: any) => {
         if (event.streams && event.streams[0]) {
           setRemoteStream(event.streams[0]);
         }
-      });
+      };
 
       // Send ICE candidates
-      pc.addEventListener("icecandidate", (event: any) => {
+      (pc as any).onicecandidate = (event: any) => {
         if (event.candidate && callId) {
           send({
             type: "webrtc_ice_candidate",
@@ -73,15 +73,15 @@ export function useWebRTC({ callId, callType, isInitiator, send }: UseWebRTCOpti
             candidate: JSON.stringify(event.candidate),
           });
         }
-      });
+      };
 
       // Track connection state
-      pc.addEventListener("iceconnectionstatechange", () => {
+      (pc as any).oniceconnectionstatechange = () => {
         setConnectionState(pc.iceConnectionState || "unknown");
         if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
           // Connection lost
         }
-      });
+      };
 
       return pc;
     },
