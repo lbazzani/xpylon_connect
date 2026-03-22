@@ -460,25 +460,31 @@
     }
 
     function advance() {
-      const prevScene = currentScene;
       currentScene = (currentScene + 1) % SCENE_IDS.length;
 
-      // Hide previous
-      if (prevScene >= 0) {
-        const prevEl = document.getElementById(SCENE_IDS[prevScene]);
-        if (prevEl) prevEl.classList.remove('scene-enter');
-      }
+      // Hide ALL scenes first
+      SCENE_IDS.forEach((sid, i) => {
+        const el = document.getElementById(sid);
+        if (el) {
+          el.classList.remove('scene-enter');
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+        }
+      });
 
       // Reset and show current
       const id = SCENE_IDS[currentScene];
       resetScene(id);
       const el = document.getElementById(id);
       if (el) {
-        el.classList.remove('scene-exit');
-        // Small delay to allow opacity transition
+        // Small delay to allow browser to process the hide
         requestAnimationFrame(() => {
-          el.classList.add('scene-enter');
-          playScene(id);
+          requestAnimationFrame(() => {
+            el.style.opacity = '';
+            el.style.pointerEvents = '';
+            el.classList.add('scene-enter');
+            playScene(id);
+          });
         });
       }
 
